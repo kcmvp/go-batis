@@ -13,6 +13,10 @@ import (
 	"sync"
 )
 
+type Person struct {
+	Name string
+}
+
 // A FieldInfo is metadata for a struct field.
 type FieldInfo struct {
 	Index    []int
