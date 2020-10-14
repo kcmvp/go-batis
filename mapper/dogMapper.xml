@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE mapper PUBLIC "-//Mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="entity.Dog">
+
+    <insert id="createDog" parameterType="entity.Dog">
+        insert into Dog(name,age,price) values (#{name},#{age},#{price})
+    </insert>
+
+    <insert id="batchInsert" parameterType="entity.Dog">
+        insert into Dog(name,age,price)
+        values
+        <foreach collection="dogList" item="dog" index="index" separator=",">
+            (
+            #{dog.name},#{dog.age},#{dog.price}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateDog" parameterType="xxxx">
+        update Dog
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="age != null">
+                age = #{age},
+            </if>
+            <if test="price != null">
+                price = #{price},
+            </if>
+            updated_at = CURRENT_TIMESTAMP()
+        </set>
+        where id = #{id}
+    </update>
+    <select id="findDogById" resultType="entity.Dog" flushCache="true">
+        select *
+        from Dog
+        where id = #{id}
+    </select>
+    <select id="searchByExample">
+        select count(1)
+        from from Dog
+        <where>
+            <if test="name != null">
+                and name = #{name}
+            </if>
+            <if test="age > 0">
+                and age = #{age}
+            </if>
+        </where>
+    </select>
+    <select>
+        <!-- one-to-many list-->
+    </select>
+
+    <delete id="deleteDogById">
+        delete from dog where levy_serial_number = #{levySerialNumber}
+    </delete>
+
+    <!-- batch update begin -->
+    <sql id="updateWeekDayPrice">
+        UPDATE T_WEEK_DAY_PRICE
+        <set>
+            <if test="item.price != null">
+                PRICE = ${item.price},
+            </if>
+
+            <if test="item.updatedBy != null">
+                UPDATED_BY = ${item.updatedBy},
+            </if>
+
+            UPDATED_AT = CURRENT_TIMESTAMP()
+        </set>
+        where PRICE_PLAN_ID = ${item.pricePlanId}
+        and NUM_OF_WEEK = ${item.numOfWeek}
+    </sql>
+    <update id="updateWeekDayPriceWeekly" parameterType="java.util.List">
+        <foreach  collection="list" item="item"  separator=";">
+            <include refid="updateWeekDayPrice"/>
+        </foreach>
+    </update>
+    <!-- batch update end -->
+
+</mapper>

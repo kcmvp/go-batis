@@ -1,4 +1,4 @@
-package sqlx
+package udb
 
 import (
 	"context"
@@ -28,10 +28,10 @@ type Session interface {
 
 	WithContext(ctx context.Context) Session
 
-	//ExecInsert(mapper Mapper, arg interface{}) (sql.Result, error)
-	//ExecUpdate(mapper Mapper, arg interface{}) (sql.Result, error)
-	//Select(dest interface{}, mapper Mapper, args ...interface{}) error
-	//Get(dest interface{}, mapper Mapper, args ...interface{}) error
+	//ExecInsert(dao Mapper, arg interface{}) (sql.Result, error)
+	//ExecUpdate(dao Mapper, arg interface{}) (sql.Result, error)
+	//Select(dest interface{}, dao Mapper, args ...interface{}) error
+	//Get(dest interface{}, dao Mapper, args ...interface{}) error
 
 	Exec(arg interface{}) (sql.Result, error)
 

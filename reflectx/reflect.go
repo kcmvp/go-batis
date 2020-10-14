@@ -61,7 +61,7 @@ func (f StructMap) GetByTraversal(index []int) *FieldInfo {
 	return tree
 }
 
-// Mapper is a general purpose mapper of names to struct fields.  A Mapper
+// Mapper is a general purpose dao of names to struct fields.  A Mapper
 // behaves like most marshallers in the standard library, obeying a field tag
 // for name mapping but also providing a basic transform function.
 type Mapper struct {
@@ -72,7 +72,7 @@ type Mapper struct {
 	mutex      sync.Mutex
 }
 
-// NewMapper returns a new mapper using the tagName as its struct field tag.
+// NewMapper returns a new dao using the tagName as its struct field tag.
 // If tagName is the empty string, it is ignored.
 func NewMapper(tagName string) *Mapper {
 	return &Mapper{
@@ -81,8 +81,8 @@ func NewMapper(tagName string) *Mapper {
 	}
 }
 
-// NewMapperTagFunc returns a new mapper which contains a mapper for field names
-// AND a mapper for tag values.  This is useful for tags like json which can
+// NewMapperTagFunc returns a new dao which contains a dao for field names
+// AND a dao for tag values.  This is useful for tags like json which can
 // have values like "name,omitempty".
 func NewMapperTagFunc(tagName string, mapFunc, tagMapFunc func(string) string) *Mapper {
 	return &Mapper{
@@ -93,8 +93,8 @@ func NewMapperTagFunc(tagName string, mapFunc, tagMapFunc func(string) string) *
 	}
 }
 
-// NewMapperFunc returns a new mapper which optionally obeys a field tag and
-// a struct field name mapper func given by f.  Tags will take precedence, but
+// NewMapperFunc returns a new dao which optionally obeys a field tag and
+// a struct field name dao func given by f.  Tags will take precedence, but
 // for any other field, the mapped name will be f(field.Name)
 func NewMapperFunc(tagName string, f func(string) string) *Mapper {
 	return &Mapper{
@@ -117,7 +117,7 @@ func (m *Mapper) TypeMap(t reflect.Type) *StructMap {
 	return mapping
 }
 
-// FieldMap returns the mapper's mapping of field names to reflect values.  Panics
+// FieldMap returns the dao's mapping of field names to reflect values.  Panics
 // if v's Kind is not Struct, or v is not Indirectable to a struct kind.
 func (m *Mapper) FieldMap(v reflect.Value) map[string]reflect.Value {
 	v = reflect.Indirect(v)
@@ -310,7 +310,7 @@ func parseName(field reflect.StructField, tagName string, mapFunc, tagMapFunc ma
 	// at this point we're fairly sure that we have a tag, so lets pull it out
 	tag = field.Tag.Get(tagName)
 
-	// if we have a mapper function, call it on the whole tag
+	// if we have a dao function, call it on the whole tag
 	// XXX: this is a change from the old version, which pulled out the name
 	// before the tagMapFunc could be run, but I think this is the right way
 	if tagMapFunc != nil {

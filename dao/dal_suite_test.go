@@ -1,13 +1,12 @@
-package sqlx_test
+package dao_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"testing"
 )
 
-func TestGoBatis(t *testing.T) {
+func TestDal(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "GoBatis Suite")
+	RunSpecs(t, "Dal Suite")
 }
