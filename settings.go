@@ -9,10 +9,10 @@ import (
 // Settings defines methods to get or set configuration values.
 type Settings interface {
 	// SetPreparedStatementCache enables or disables the prepared statement
-	// cache.
+	// internal.
 	SetPreparedStatementCache(bool)
 
-	// PreparedStatementCacheEnabled returns true if the prepared statement cache
+	// PreparedStatementCacheEnabled returns true if the prepared statement internal
 	// is enabled, false otherwise.
 	PreparedStatementCacheEnabled() bool
 

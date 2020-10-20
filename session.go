@@ -33,7 +33,7 @@ type Session interface {
 	//Select(dest interface{}, dao Mapper, args ...interface{}) error
 	//Get(dest interface{}, dao Mapper, args ...interface{}) error
 
-	Exec(arg interface{}) (sql.Result, error)
+	Exec(sql string, arg interface{}) (sql.Result, error)
 
 	Settings
 }
