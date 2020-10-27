@@ -5,16 +5,14 @@ import (
 )
 
 var defaultCache Cache
-var SysCache Cache
 
 func init() {
 	var cacheType string = ""
-	SysCache = initRistrettoCache()
 	switch cacheType {
 	case "Redis":
 		defaultCache = initRedisCache()
 	default:
-		defaultCache = SysCache
+		defaultCache = initRistrettoCache()
 	}
 }
 
@@ -32,8 +30,6 @@ type Cacheable interface {
 	CacheName() string
 }
 
-
-
 func Put(key string, value interface{}) (interface{}, error) {
 	return defaultCache.Put(key, value)
 }
@@ -49,7 +45,3 @@ func Evict(key string) (interface{}, error) {
 func Touch(key string, duration time.Duration) (interface{}, error) {
 	return defaultCache.Touch(key, duration)
 }
-
-
-
-

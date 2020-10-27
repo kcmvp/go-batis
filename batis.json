@@ -1,0 +1,21 @@
+{
+  "dev": {
+    "datasource": {
+      "type": "mysql",
+      "maxIdleConns": 10,
+      "maxOpenConns": 50
+    },
+    "batis": {
+      "configDir": ""
+    },
+    "cache": {
+      "defaultTtl": 200
+    }
+  },
+  "test": {
+
+  },
+  "prd": {
+
+  }
+}

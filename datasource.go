@@ -1,12 +1,13 @@
-package udb
+package batis
 
 import (
 	"context"
 	"database/sql"
+	_ "github.com/lib/pq"
 )
 
-// Session is an interface that defines methods for database adapters.
-type Session interface {
+// DataSource is an interface that defines methods for database adapters.
+type DataSource interface {
 	// Name returns the name of the database.
 	Name() string
 
@@ -20,13 +21,13 @@ type Session interface {
 
 	Driver() interface{}
 
-	Tx(fn func(sess Session) error) error
+	Tx(fn func(sess DataSource) error) error
 
-	TxContext(ctx context.Context, fn func(sess Session) error, opts *sql.TxOptions) error
+	TxContext(ctx context.Context, fn func(sess DataSource) error, opts *sql.TxOptions) error
 
 	Context() context.Context
 
-	WithContext(ctx context.Context) Session
+	WithContext(ctx context.Context) DataSource
 
 	//ExecInsert(dao Mapper, arg interface{}) (sql.Result, error)
 	//ExecUpdate(dao Mapper, arg interface{}) (sql.Result, error)

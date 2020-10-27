@@ -5,11 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/antchfx/xmlquery"
-	"github.com/go-batis/dao/internal/cache"
-	. "github.com/go-batis/dao/internal/syntax"
+	"github.com/dgraph-io/ristretto"
+	. "github.com/kcmvp/go-batis/dao/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+)
+
+
+var maxCacheMaxEntries = 100
+
+var (
+	cacheOnce   sync.Once
+	clauseCache *ristretto.Cache
+	cacheMutex  sync.Mutex
 )
 
 type MapperType uint
@@ -26,15 +36,12 @@ func (mapperType MapperType) name() string {
 	return [...]string{"insert", "update", "delete", "select", "select"}[mapperType]
 }
 
-
-
-
 type Mapper interface {
 	Exec(arg interface{}) Result
 }
 
 func NewMapper(mType MapperType, name string /*, argType interface{}*/) Mapper {
-	return &mapper{
+	return & mapper{
 		MapperType: mType,
 		mapperName: name,
 		//argType:    argType,
@@ -65,7 +72,7 @@ type Result interface {
 }
 
 func (m mapper) Exec(arg interface{}) Result {
-	if clause, err := m.getMapper(); err != nil {
+	if clause, err := m.build(); err != nil {
 		if sql, err := clause.Build(arg); err != nil {
 			if len(clause.CacheKey) > 0 && len(clause.CacheName) > 0 {
 
@@ -77,41 +84,55 @@ func (m mapper) Exec(arg interface{}) Result {
 }
 
 // mapper file naming pattern is ${struct}Mapper.xml
-func (mapper mapper) getMapper() (Clause, error) {
+func (mapper mapper) build() (*Clause, error) {
 
-	if c, err := cache.SysCache.Get(mapper.mapperName); err != nil {
-		if c, ok := c.(Clause); ok {
-			return c, nil
+	cacheOnce.Do(func() {
+		var err error
+		clauseCache, err = ristretto.NewCache(&ristretto.Config{
+			NumCounters: 10000,     //10K
+			MaxCost:     100000000,  //100MB
+			BufferItems: 64,
+		})
+		if err != nil {
+			panic(err)
 		}
+	})
+
+	if c, ok := clauseCache.Get(mapper.mapperName); ok {
+		return c.(*Clause), nil
 	}
 
 	if entries := strings.Split(mapper.mapperName, "."); len(entries) == 2 {
 		path, err := filepath.Abs(fmt.Sprintf("../mapper/%vMapper.xml", entries[0]))
 		if err != nil {
-			return Clause{}, err
+			return nil, err
 		}
 		f, err := os.OpenFile(path, os.O_RDONLY, 0666)
 		if err != nil {
-			return Clause{}, err
+			return nil, err
 		}
 		root, err := xmlquery.Parse(f)
 		if err != nil {
-			return Clause{}, err
+			return nil, err
 		}
 		node := xmlquery.FindOne(root, fmt.Sprintf("//%v[@id='%v']", mapper.MapperType.name(), entries[1]))
 		if node == nil {
-			return Clause{}, errors.New("can't find the node")
+			return nil, errors.New("can't find the node")
 		}
 		var c Clause
-		if xml.Unmarshal(nil, &c) != nil {
+		xmlNode := node.OutputXML(true)
+		if xml.Unmarshal([]byte(xmlNode), &c) != nil {
 			defer func() {
-				cache.SysCache.Put(mapper.mapperName, c)
+				clauseCache.Set(mapper.mapperName, &c,0)
 			}()
 		}
-		return c, nil
+		defer func() {
+			f.Close()
+		}()
+		return &c, nil
 
 	} else {
-		return Clause{}, errors.New("can't find the dao")
+		return nil, errors.New("can't find the dao")
 	}
 
 }

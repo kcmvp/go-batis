@@ -1,22 +1,18 @@
 package syntax
 
 import (
-	"database/sql"
 	"encoding/xml"
 	"github.com/Knetic/govaluate"
-	. "github.com/go-batis/dao"
-	"github.com/go-batis/dao/internal/cache"
-	"net/http"
+	"github.com/kcmvp/go-batis/dao/internal/cache"
 )
 
-type Condition string
+type Test string
 
-func (c Condition) Name() string {
-	http.Handle("/foo", nil)
+func (c Test) Name() string {
 	return string(c)
 }
 
-func (c Condition) Value() (interface{}, error) {
+func (c Test) Value() (interface{}, error) {
 	panic("todo")
 	exp, _ := govaluate.NewEvaluableExpression(c.Name())
 	//@todo fix return type
@@ -32,9 +28,9 @@ type Foreach struct {
 }
 
 type If struct {
-	XMLName xml.Name  `xml:"if"`
-	Test    Condition `xml:"test,attr"`
-	Value   string    `xml:",chardata"`
+	XMLName xml.Name `xml:"if"`
+	Test    Test     `xml:"test,attr"`
+	Value   string   `xml:",chardata"`
 }
 
 // set_value_if only is applicable for update
@@ -51,17 +47,33 @@ type WhereIf struct {
 }
 
 type Clause struct {
-	XMLName       xml.Name `xml:"insert"`
+	XMLName       xml.Name
 	Id            string   `xml:"id,attr"`
 	CacheName     string   `xml:"cacheName,attr"`
 	CacheKey      string   `xml:"cacheKey,attr"`
-	ParameterType string   `xml:"parameterType,attr"`
+	//ParameterType string   `xml:"parameterType,attr"`
 	ResultType    string   `xml:"resultType,attr"`
-	HardText1     string   `xml:",chardata"`
+	CharData1     string   `xml:",chardata"`
 	Each          Foreach  //
 	Sets          SetIf
-	Wheres        []WhereIf
-	HardText2     string `xml:",chardata"`
+	Wheres        WhereIf
+	CharData2     string `xml:",chardata"`
+	before        cacheHook
+	after         cacheHook
+}
+
+type cacheHook func(string, ...interface{}) (interface{}, error)
+
+var get cacheHook = func(s string, i ...interface{}) (interface{}, error) {
+	return cache.Get(s)
+}
+
+var put cacheHook = func(s string, i ...interface{}) (interface{}, error) {
+	return cache.Put(s, i)
+}
+
+var evict cacheHook = func(s string, i ...interface{}) (interface{}, error) {
+	return cache.Evict(s)
 }
 
 // Build returns sql clause and cache key if exists.
@@ -69,16 +81,20 @@ func (receiver *Clause) Build(arg interface{}) (string, error) {
 	panic("todo")
 }
 
-
-
-func (c Clause) Exec(arg interface{}) (CacheFunc, error) {
-	var rs sql.Result
-	switch c.XMLName.Local {
-	case "select":
-		return func(s string, i interface{}) (interface{}, error) {
-			return cache.Put(s, i)
-		}, nil
-	case "delete", "update":
-		panic("")
+func (c Clause) Exec(arg interface{}) (interface{}, error) {
+	if c.before != nil {
+		if v, err := c.before(c.CacheKey, arg); v != nil && err == nil {
+			return v, nil
+		} else {
+			c.after = put
+		}
 	}
+	// exec()
+
+	if c.after != nil {
+		defer c.after(c.CacheKey, arg)
+	}
+
+	return nil, nil
+
 }

@@ -2,7 +2,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="entity.Dog">
 
-    <insert id="createDog" parameterType="entity.Dog">
+    <insert id="createDog" resultType="int64">
         insert into Dog(name,age,price) values (#{name},#{age},#{price})
     </insert>
 
