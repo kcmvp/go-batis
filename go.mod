@@ -8,6 +8,7 @@ require (
 	github.com/buraksezer/olric v0.2.0 // indirect
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/go-redis/redis/v8 v8.3.1
+	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
