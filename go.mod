@@ -10,6 +10,7 @@ require (
 	github.com/go-redis/redis/v8 v8.3.1
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/lib/pq v1.8.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/spf13/viper v1.7.1
