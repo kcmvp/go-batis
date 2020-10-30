@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/antchfx/xmlquery"
 	"github.com/dgraph-io/ristretto"
+	"github.com/kcmvp/go-batis"
 	. "github.com/kcmvp/go-batis/dao/internal/syntax"
 	"os"
 	"path/filepath"
@@ -99,7 +100,7 @@ func (mapper mapper) build() (*Clause, error) {
 	}
 
 	if entries := strings.Split(mapper.mapperName, "."); len(entries) == 2 {
-		path, err := filepath.Abs(fmt.Sprintf("../mapper/%vMapper.xml", entries[0]))
+		path, err := filepath.Abs(fmt.Sprintf("%v/%vMapper.xml", batis.Config.MapperDir(),entries[0]))
 		if err != nil {
 			return nil, err
 		}

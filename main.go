@@ -6,10 +6,13 @@ import (
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
 const cfgName = "application"
+const section = "batis"
+const mapperDir = "mapper"
 
 var (
 	once   sync.Once
@@ -25,19 +28,42 @@ func initialization() {
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
 	v.AddConfigPath("../")
-	err := v.ReadInConfig() // Find and read the initialization file
-	if err != nil {         // Handle errors reading the initialization file
+	if err := v.ReadInConfig(); err != nil { // Handle errors reading the initialization file
 		panic(fmt.Errorf("Fatal error initialization file: %s \n", err))
 	}
+
+	cfg := v.ConfigFileUsed()
+
 	v.SetConfigName(fmt.Sprintf("%v-%v", cfgName, env))
 	if err := v.MergeInConfig(); err != nil {
 		panic(fmt.Errorf("Fatal error initialization file: %s \n", err))
 	}
-	v = v.Sub("batis")
+	if v = v.Sub(section); v == nil {
+		panic(fmt.Sprintf("Fatal error: can not find section %v in configure file", section))
+	}
 
 	s := settings{}
-	v.Unmarshal(&s)
+	if err := v.Unmarshal(&s); err != nil {
+		panic(err)
+	} else {
+		validate(cfg, &s)
+	}
 	Config = &s
+}
+
+func validate(cfg string, s *settings) {
+
+	path := filepath.Dir(cfg)
+	path, err := filepath.Abs(path)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get the absolute path: %v", path))
+	}
+	path = filepath.Join(path, mapperDir)
+
+	if _, err := os.Stat(path); err != nil {
+		panic(fmt.Sprintf("Can not find the mapper dir %v", path))
+	}
+	s.Mappers = path
 }
 
 type settings struct {

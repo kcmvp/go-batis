@@ -1,0 +1,17 @@
+mode: atomic
+github.com/kcmvp/go-batis/main.go:20.23,29.16 8 1
+github.com/kcmvp/go-batis/main.go:32.2,33.42 2 1
+github.com/kcmvp/go-batis/main.go:36.2,40.13 4 1
+github.com/kcmvp/go-batis/main.go:29.16,30.67 1 0
+github.com/kcmvp/go-batis/main.go:33.42,34.67 1 0
+github.com/kcmvp/go-batis/main.go:52.35,54.2 1 2
+github.com/kcmvp/go-batis/main.go:56.33,58.2 1 2
+github.com/kcmvp/go-batis/main.go:60.33,62.2 1 1
+github.com/kcmvp/go-batis/main.go:64.36,66.2 1 0
+github.com/kcmvp/go-batis/main.go:68.34,70.2 1 2
+github.com/kcmvp/go-batis/main.go:72.38,74.2 1 0
+github.com/kcmvp/go-batis/main.go:85.19,86.17 1 1
+github.com/kcmvp/go-batis/main.go:96.2,96.11 1 1
+github.com/kcmvp/go-batis/main.go:86.17,89.70 3 1
+github.com/kcmvp/go-batis/main.go:89.70,90.72 1 0
+github.com/kcmvp/go-batis/main.go:91.9,94.4 2 1

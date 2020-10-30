@@ -1,0 +1,7 @@
+batis:
+  driverName: sqlite3
+  url: ./testdb
+  maxOpenConns: 20
+  maxIdleConns: 5
+  maxTransactionRetries: 3
+  mapperDir: ./mapper

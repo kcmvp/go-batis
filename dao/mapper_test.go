@@ -1,18 +1,17 @@
 package dao
 
 import (
+	"github.com/kcmvp/go-batis"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
 	"strings"
 )
 
-type Dog struct {
-	Name string
-}
 
 var _ = Describe("Mapper", func() {
 	os.Setenv("env", "test")
+	batis.DB()
 	var (
 		createDogMapper Mapper = NewMapper(Insert, "dog.createDog")
 	)

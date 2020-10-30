@@ -1,13 +1,14 @@
-package dao_test
+package batis_test
 
 import (
+	"testing"
 	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
-func TestDal(t *testing.T) {
+
+func TestGoBatis(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Dal Suite")
+	RunSpecs(t, "GoBatis Suite")
 }
