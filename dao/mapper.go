@@ -37,8 +37,8 @@ func (mapperType MapperType) name() string {
 }
 
 type Mapper interface {
-	Exec(dest interface{}, arg interface{}) (error)
-	ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) (error)
+	Exec(dest interface{}, arg interface{}) error
+	ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error
 }
 
 func NewMapper(mType MapperType, name string /*, argType interface{}*/) Mapper {
@@ -54,10 +54,7 @@ type mapper struct {
 	mapperName string
 }
 
-
-
-
-func (m mapper) ExecWithTx(tx sql.Tx, dest interface{},arg interface{}) (error) {
+func (m mapper) ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
 		if sql, err := clause.Build(arg); err != nil {
 			if len(clause.CacheKey) > 0 && len(clause.CacheName) > 0 {
@@ -69,7 +66,7 @@ func (m mapper) ExecWithTx(tx sql.Tx, dest interface{},arg interface{}) (error) 
 	return nil
 }
 
-func (m mapper) Exec(dest interface{},arg interface{}) (error){
+func (m mapper) Exec(dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
 		if sql, err := clause.Build(arg); err != nil {
 			if len(clause.CacheKey) > 0 && len(clause.CacheName) > 0 {
@@ -100,7 +97,7 @@ func (mapper mapper) build() (*Clause, error) {
 	}
 
 	if entries := strings.Split(mapper.mapperName, "."); len(entries) == 2 {
-		path, err := filepath.Abs(fmt.Sprintf("%v/%vMapper.xml", batis.Config.MapperDir(),entries[0]))
+		path, err := filepath.Abs(fmt.Sprintf("%v/%vMapper.xml", batis.Config.MapperDir(), entries[0]))
 		if err != nil {
 			return nil, err
 		}
@@ -118,10 +115,16 @@ func (mapper mapper) build() (*Clause, error) {
 		}
 		var c Clause
 		xmlNode := node.OutputXML(true)
-		if xml.Unmarshal([]byte(xmlNode), &c) != nil {
-			defer func() {
+		if err = xml.Unmarshal([]byte(xmlNode), &c); err == nil {
+			if batis.TestEnv() {
 				clauseCache.Set(mapper.mapperName, &c, 0)
-			}()
+			} else {
+				defer func() {
+					clauseCache.Set(mapper.mapperName, &c, 0)
+				}()
+			}
+		} else {
+			//@todo add log info
 		}
 		defer func() {
 			f.Close()

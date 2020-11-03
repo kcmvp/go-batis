@@ -27,12 +27,9 @@ var _ = Describe("Mapper", func() {
 				Expect(c.Id).To(Equal("createDog"))
 				Expect(c.ResultType).To(Equal("int64"))
 				Expect(c.CharData1).To(Equal("insert into Dog(name,age,price) values (#{name},#{age},#{price})"))
-				//Expect(clauseCache.Metrics.KeysAdded()).To(Equal(1))
-				//Expect(clauseCache.Get(m.mapperName)).To(Equal(c))
+				cv,_ := clauseCache.Get(m.mapperName)
+				Expect(cv).To(Equal(c))
 			})
-
-
 		})
-
 	})
 })

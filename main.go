@@ -51,6 +51,10 @@ func initialization() {
 	Config = &s
 }
 
+func TestEnv() bool {
+	return os.Getenv("env") == "test"
+}
+
 func validate(cfg string, s *settings) {
 
 	path := filepath.Dir(cfg)
