@@ -54,13 +54,12 @@ type mapper struct {
 	mapperName string
 }
 
+
 func (m mapper) ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
-		if sql, err := clause.Build(arg); err != nil {
-			if len(clause.CacheKey) > 0 && len(clause.CacheName) > 0 {
-
-			}
-			panic(fmt.Sprintf("@todo %v", sql))
+		if err := clause.Build(arg); err != nil {
+			//@todo panic
+			return err
 		}
 	}
 	return nil
@@ -68,10 +67,9 @@ func (m mapper) ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error {
 
 func (m mapper) Exec(dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
-		if sql, err := clause.Build(arg); err != nil {
-			if len(clause.CacheKey) > 0 && len(clause.CacheName) > 0 {
-			}
-			panic(fmt.Sprintf("@todo %v", sql))
+		if err := clause.Build(arg); err != nil {
+			return err
+			panic(fmt.Sprintf("@todo %v", err))
 		}
 	}
 	return nil

@@ -10,9 +10,7 @@
         insert into Dog(name,age,price)
         values
         <foreach collection="dogList" item="dog" index="index" separator=",">
-            (
-            #{dog.name},#{dog.age},#{dog.price}
-            )
+            (#{dog.name},#{dog.age},#{dog.price})
         </foreach>
     </insert>
 

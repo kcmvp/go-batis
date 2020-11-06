@@ -2,34 +2,44 @@ package syntax
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/Knetic/govaluate"
 	"github.com/kcmvp/go-batis/dao/internal/cache"
+	"regexp"
 )
 
-type Test string
+type TestIf string
 
-func (c Test) Name() string {
+func (c TestIf) Name() string {
 	return string(c)
 }
 
-func (c Test) Value() (interface{}, error) {
+func (c TestIf) Value() (interface{}, error) {
 	panic("todo")
 	exp, _ := govaluate.NewEvaluableExpression(c.Name())
 	//@todo fix return type
 	return exp.Evaluate(nil)
 }
 
+type DynamicSql interface {
+	build(ctx interface{}) (string, []interface{}, error)
+}
+
 type Foreach struct {
 	XMLName    xml.Name `xml:"foreach"`
 	Collection string   `xml:"collection,attr"`
 	Item       string   `xml:"item,attr"`
-	Separator  string   `xml:"separator,attr"`
+	Separator  string   `xml:"separator,attr"` // default ,
 	Value      string   `xml:",chardata"`
+}
+
+func (f Foreach) build(ctx interface{}) (string, []interface{}, error) {
+	panic("implement me")
 }
 
 type If struct {
 	XMLName xml.Name `xml:"if"`
-	Test    Test     `xml:"test,attr"`
+	Test    TestIf   `xml:"test,attr"`
 	Value   string   `xml:",chardata"`
 }
 
@@ -40,26 +50,51 @@ type SetIf struct {
 	Value   string `xml:",chardata"`
 }
 
+func (sf SetIf) build(ctx interface{}) (string, []interface{}, error) {
+	panic("implement me")
+}
+
 // where_condition_if
 type WhereIf struct {
 	XMLName xml.Name `xml:"where"`
 	Ifs     []If
 }
 
+func (wf WhereIf) build(ctx interface{}) (string, []interface{}, error) {
+	panic("implement me")
+}
+
+type CharData string
+
+var reg = regexp.MustCompile(`#\{\w*\.?\w*\}`)
+
+func (c CharData) build(ctx interface{}) (string, []interface{}, error) {
+	//reg.FindAllString(string(c),-1)
+	//for _, arg := range args {
+	//	s := strings.ReplaceAll(arg,"#{","")
+	//	_ := strings.ReplaceAll(s, "}","")
+	//
+	//}
+	//reg.ReplaceAllString(string(c),"?")
+	panic("")
+}
+
 type Clause struct {
-	XMLName       xml.Name
-	Id            string   `xml:"id,attr"`
-	CacheName     string   `xml:"cacheName,attr"`
-	CacheKey      string   `xml:"cacheKey,attr"`
+	XMLName   xml.Name
+	Id        string `xml:"id,attr"`
+	CacheName string `xml:"cacheName,attr"`
+	CacheKey  string `xml:"cacheKey,attr"`
 	//ParameterType string   `xml:"parameterType,attr"`
-	ResultType    string   `xml:"resultType,attr"`
-	CharData1     string   `xml:",chardata"`
-	Each          Foreach  //
-	Sets          SetIf
-	Wheres        WhereIf
-	CharData2     string `xml:",chardata"`
-	before        cacheHook
-	after         cacheHook
+	ResultType string   `xml:"resultType,attr"`
+	CharData1  CharData `xml:",chardata"`
+	Foreach             //
+	SetIf
+	WhereIf
+	CharData2 CharData `xml:",chardata"`
+	before    cacheHook
+	after     cacheHook
+	sql       *string
+	args      *[]interface{}
 }
 
 type cacheHook func(string, ...interface{}) (interface{}, error)
@@ -77,22 +112,38 @@ var evict cacheHook = func(s string, i ...interface{}) (interface{}, error) {
 }
 
 // Build returns sql clause and cache key if exists.
-func (receiver *Clause) Build(arg interface{}) (string, error) {
+func (clause *Clause) Build(arg interface{}) error {
+	ds := []DynamicSql{clause.CharData1, clause.Foreach, clause.Foreach, clause.SetIf, clause.WhereIf}
+
+	for _, d := range ds {
+		if s, _, err := d.build(arg); err != nil {
+			panic("todo")
+		} else {
+			// s build sql
+			fmt.Sprintf(s)
+		}
+	}
+	panic("todo")
+
+}
+
+func (clause *Clause) buildCache() error {
 	panic("todo")
 }
 
-func (c Clause) Exec(arg interface{}) (interface{}, error) {
-	if c.before != nil {
-		if v, err := c.before(c.CacheKey, arg); v != nil && err == nil {
+func (clause *Clause) Exec(arg interface{}) (interface{}, error) {
+	if clause.before != nil {
+		if v, err := clause.before(clause.CacheKey, arg); v != nil && err == nil {
 			return v, nil
 		} else {
-			c.after = put
+			clause.after = put
 		}
 	}
+
 	// exec()
 
-	if c.after != nil {
-		defer c.after(c.CacheKey, arg)
+	if clause.after != nil {
+		defer clause.after(clause.CacheKey, arg)
 	}
 
 	return nil, nil
