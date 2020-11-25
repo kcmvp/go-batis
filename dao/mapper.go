@@ -22,42 +22,27 @@ var (
 	clauseCache *ristretto.Cache
 )
 
-type MapperType uint
 
-const (
-	Insert MapperType = iota
-	Update
-	Delete
-	Find
-	Search
-)
-
-func (mapperType MapperType) name() string {
-	return [...]string{"insert", "update", "delete", "select", "select"}[mapperType]
-}
 
 type Mapper interface {
 	Exec(dest interface{}, arg interface{}) error
 	ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error
 }
 
-func NewMapper(mType MapperType, name string /*, argType interface{}*/) Mapper {
+func NewMapper(name string /*, argType interface{}*/) Mapper {
 	return &mapper{
-		MapperType: mType,
 		mapperName: name,
-		//argType:    argType,
 	}
 }
 
 type mapper struct {
-	MapperType
 	mapperName string
 }
 
 
 func (m mapper) ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
-		if err := clause.Build(arg); err != nil {
+		if err := clause.Eval(arg); err != nil {
 			//@todo panic
 			return err
 		}
@@ -67,7 +52,7 @@ func (m mapper) ExecWithTx(tx sql.Tx, dest interface{}, arg interface{}) error {
 
 func (m mapper) Exec(dest interface{}, arg interface{}) error {
 	if clause, err := m.build(); err != nil {
-		if err := clause.Build(arg); err != nil {
+		if err := clause.Eval(arg); err != nil {
 			return err
 			panic(fmt.Sprintf("@todo %v", err))
 		}

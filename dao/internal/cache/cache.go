@@ -23,13 +23,6 @@ type Cache interface {
 	Touch(key string, duration time.Duration) (interface{}, error)
 }
 
-const Separator = "::"
-
-type Cacheable interface {
-	// cache name is the prefix of the cache key. The full key is {cacheName}::{Key}
-	CacheName() string
-}
-
 func Put(key string, value interface{}) (interface{}, error) {
 	return defaultCache.Put(key, value)
 }

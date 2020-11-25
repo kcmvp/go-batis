@@ -6,6 +6,7 @@ import (
 	"github.com/Knetic/govaluate"
 	"github.com/kcmvp/go-batis/dao/internal/cache"
 	"regexp"
+	"strings"
 )
 
 type TestIf string
@@ -84,35 +85,19 @@ type Clause struct {
 	Id        string `xml:"id,attr"`
 	CacheName string `xml:"cacheName,attr"`
 	CacheKey  string `xml:"cacheKey,attr"`
-	//ParameterType string   `xml:"parameterType,attr"`
-	ResultType string   `xml:"resultType,attr"`
 	CharData1  CharData `xml:",chardata"`
 	Foreach             //
 	SetIf
 	WhereIf
 	CharData2 CharData `xml:",chardata"`
-	before    cacheHook
-	after     cacheHook
 	sql       *string
 	args      *[]interface{}
 }
 
-type cacheHook func(string, ...interface{}) (interface{}, error)
 
-var get cacheHook = func(s string, i ...interface{}) (interface{}, error) {
-	return cache.Get(s)
-}
 
-var put cacheHook = func(s string, i ...interface{}) (interface{}, error) {
-	return cache.Put(s, i)
-}
-
-var evict cacheHook = func(s string, i ...interface{}) (interface{}, error) {
-	return cache.Evict(s)
-}
-
-// Build returns sql clause and cache key if exists.
-func (clause *Clause) Build(arg interface{}) error {
+// Eval returns sql clause and cache key if exists.
+func (clause *Clause) Eval(arg interface{}) error {
 	ds := []DynamicSql{clause.CharData1, clause.Foreach, clause.Foreach, clause.SetIf, clause.WhereIf}
 
 	for _, d := range ds {
@@ -127,23 +112,25 @@ func (clause *Clause) Build(arg interface{}) error {
 
 }
 
-func (clause *Clause) buildCache() error {
-	panic("todo")
-}
 
 func (clause *Clause) Exec(arg interface{}) (interface{}, error) {
-	if clause.before != nil {
-		if v, err := clause.before(clause.CacheKey, arg); v != nil && err == nil {
-			return v, nil
+	if len(clause.CacheName) > 0 && len (clause.CacheKey) > 0 {
+		if strings.EqualFold(clause.XMLName.Local, "select") {
+			// hit cache
+			if v, err := cache.Get(clause.CacheName+"::"+clause.CacheKey); err == nil {
+				return v, nil
+			} else {
+				// execute sql @todo
+				// cache the result @todo
+				cache.Put(clause.CacheName+"::"+clause.CacheKey, "")
+			}
 		} else {
-			clause.after = put
+			// execute sql @todo
+			cache.Evict(clause.CacheName+"::"+clause.CacheKey)
 		}
-	}
-
-	// exec()
-
-	if clause.after != nil {
-		defer clause.after(clause.CacheKey, arg)
+	} else {
+		// execute sql
+		//@todo
 	}
 
 	return nil, nil
