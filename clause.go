@@ -1,10 +1,9 @@
-package syntax
+package batis
 
 import (
 	"encoding/xml"
 	"fmt"
 	"github.com/Knetic/govaluate"
-	"github.com/kcmvp/go-batis/dao/internal/cache"
 	"regexp"
 	"strings"
 )
@@ -82,11 +81,11 @@ func (c CharData) build(ctx interface{}) (string, []interface{}, error) {
 
 type Clause struct {
 	XMLName   xml.Name
-	Id        string `xml:"id,attr"`
-	CacheName string `xml:"cacheName,attr"`
-	CacheKey  string `xml:"cacheKey,attr"`
-	CharData1  CharData `xml:",chardata"`
-	Foreach             //
+	Id        string   `xml:"id,attr"`
+	CacheName string   `xml:"cacheName,attr"`
+	CacheKey  string   `xml:"cacheKey,attr"`
+	CharData1 CharData `xml:",chardata"`
+	Foreach            //
 	SetIf
 	WhereIf
 	CharData2 CharData `xml:",chardata"`
@@ -117,16 +116,16 @@ func (clause *Clause) Exec(arg interface{}) (interface{}, error) {
 	if len(clause.CacheName) > 0 && len (clause.CacheKey) > 0 {
 		if strings.EqualFold(clause.XMLName.Local, "select") {
 			// hit cache
-			if v, err := cache.Get(clause.CacheName+"::"+clause.CacheKey); err == nil {
+			if v, err := innerCache.Get(clause.CacheName+"::"+clause.CacheKey); err == nil {
 				return v, nil
 			} else {
 				// execute sql @todo
 				// cache the result @todo
-				cache.Put(clause.CacheName+"::"+clause.CacheKey, "")
+				innerCache.Put(clause.CacheName+"::"+clause.CacheKey, "")
 			}
 		} else {
 			// execute sql @todo
-			cache.Evict(clause.CacheName+"::"+clause.CacheKey)
+			innerCache.Evict(clause.CacheName+"::"+clause.CacheKey)
 		}
 	} else {
 		// execute sql

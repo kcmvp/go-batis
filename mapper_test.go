@@ -1,7 +1,6 @@
-package dao
+package batis
 
 import (
-	"github.com/kcmvp/go-batis"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
@@ -11,9 +10,9 @@ import (
 
 var _ = Describe("Mapper", func() {
 	os.Setenv("env", "test")
-	batis.DB()
+	DB()
 	var (
-		createDogMapper Mapper = NewMapper(Insert, "dog.createDog")
+		createDogMapper Mapper = NewMapper("dog.createDog")
 	)
 
 	Describe("Test create mapper nodes", func() {

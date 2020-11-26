@@ -15,9 +15,9 @@ var _ = Describe("GoBatis", func() {
 		Context("configuration merge", func() {
 			When("there is a value in the env", func() {
 				It("should merge default and test environment", func() {
-					Expect(batis.Config.Driver()).Should(Equal("sqlite3"))
-					Expect(batis.Config.DBUrl()).Should(Equal("./testdb"))
-					Expect(batis.Config.MaxOpen()).Should(Equal(20))
+					Expect(batis.settings.Driver()).Should(Equal("sqlite3"))
+					Expect(batis.settings.DBUrl()).Should(Equal("./testdb"))
+					Expect(batis.settings.MaxOpen()).Should(Equal(20))
 					Expect(db).ShouldNot(BeNil())
 				})
 			})

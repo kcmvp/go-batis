@@ -1,4 +1,4 @@
-package dao_test
+package batis_test
 
 import (
 	_ "github.com/mattn/go-sqlite3"

@@ -1,4 +1,4 @@
-package syntax_test
+package batis_test
 
 import (
 	"testing"
