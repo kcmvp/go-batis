@@ -8,14 +8,13 @@
     </insert>
 
     <insert id="batchInsert">
-        insert into Dog(name,age,price)
-        values
+        insert into Dog(name,age,price) values
         <foreach collection="dogList" item="dog" index="index" separator=",">
             (#{dog.name},#{dog.age},#{dog.price})
         </foreach>
     </insert>
 
-    <update id="updateDog" cacheKey="#{id}" cacheName="dogcache">
+    <update id="updateDog" cacheKey="id" cacheName="dogcache">
         update Dog
         <set>
             <if test="name != null">
@@ -77,5 +76,28 @@
         </foreach>
     </update>
     <!-- batch update end -->
+    <sql id="base">
+       name, age, size
+    </sql>
+    <select id="findMyDog">
+        SELECT <include refid="base"/> FROM UUC_COMPANY
+        <where>
+            <if test="bo.source != null">
+                and SOURCE = #{bo.source}
+            </if>
+            <if test="filterSources != null and filterSources.size &gt; 0">
+                AND SOURCE in (<foreach collection="filterSources" item="item" index="index" separator=",">#{item}</foreach>)
+            </if>
+            <if test="bo.beginDate!= null">
+                <![CDATA[AND UPDATED_AT >= #{bo.beginDate}]]>
+            </if>
+            <if test="bo.endDate!= null">
+                <![CDATA[AND UPDATED_AT <= #{bo.endDate}]]>
+            </if>
+        </where>
+        <if test="size != null and size &gt; 0">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
 
 </mapper>

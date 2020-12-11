@@ -1,34 +1,29 @@
 package batis
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"os"
-	"strings"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
+var mappers = []struct {
+	mapper    string
+	charData1 string
+}{
+	{"dog.createDog", "insert into Dog(name,age,price) values (#{name},#{age},#{price})"},
+	{"dog.batchInsert", "insert into Dog(name,age,price) values"},
+	//{"dog.findMyDog", "update Dog"},
+}
 
-var _ = Describe("Mapper", func() {
-	os.Setenv("env", "test")
-	DB()
-	var (
-		createDogMapper Mapper = NewMapper("dog.createDog")
-	)
+var mapDir = "./mapper"
 
-	Describe("Test create mapper nodes", func() {
-		Context("simple insert", func() {
-			It("should be a simple insert sql build", func() {
-				m, ok := createDogMapper.(*mapper)
-				Expect(ok).To(BeTrue())
-				c, err := m.build()
-				Expect(err).To(BeNil())
-				Expect(strings.ToLower(c.XMLName.Local)).To(Equal("insert"))
-				Expect(c.Id).To(Equal("createDog"))
-				Expect(c.ResultType).To(Equal("int64"))
-				Expect(c.CharData1).To(Equal("insert into Dog(name,age,price) values (#{name},#{age},#{price})"))
-				cv,_ := clauseCache.Get(m.mapperName)
-				Expect(cv).To(Equal(c))
-			})
+func TestMapperBuildCharData(t *testing.T) {
+	assert := assert.New(t)
+	for _, m := range mappers {
+		t.Run(m.mapper, func(t *testing.T) {
+			mp := SqlMapper(m.mapper)
+			c, err := mp.build(mapDir)
+			assert.Nil(err, "error should be nil")
+			assert.Equal(m.charData1,c.statement , m.mapper, "charData1 should be equal")
 		})
-	})
-})
+	}
+}

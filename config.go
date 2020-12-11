@@ -1,6 +1,7 @@
 package batis
 
 import (
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	"os"
@@ -8,13 +9,11 @@ import (
 	"time"
 )
 
-var innerCache = defaultCache()
-
 type Cache interface {
-	Put(key string, value interface{}) (interface{}, error)
+	Set(key string, value interface{}) error
 	Get(key string) (interface{}, error)
-	Evict(key string) (interface{}, error)
-	Touch(key string, duration time.Duration) (interface{}, error)
+	Del(key string) error
+	Ttl(key string, value interface{}, duration time.Duration) error
 }
 
 type DbConfig struct {
@@ -24,23 +23,16 @@ type DbConfig struct {
 	MaxIdleConns          int    `mapstructure:"maxIdleConns"`
 	MaxTransactionRetries int    `mapstructure:"maxTransactionRetries"`
 	MapperDir             string `mapstructure:"mapperDir"`
+	CacheStore            Cache
 }
 
-type Config struct {
-	DbConfig
-	CacheStore Cache
+var defaultDbConfig = DbConfig{
+	MaxOpenConns:          200,
+	MaxIdleConns:          50,
+	MaxTransactionRetries: 3,
 }
 
-var ConfigDefault = Config{
-	DbConfig{
-		MaxOpenConns:          200,
-		MaxIdleConns:          50,
-		MaxTransactionRetries: 3,
-	},
-	innerCache,
-}
-
-func (cfg Config) validate() string {
+func (cfg DbConfig) validate() string {
 	if ex, err := os.Executable(); err != nil {
 		panic(err)
 	} else {
@@ -55,25 +47,40 @@ func (cfg Config) validate() string {
 	}
 }
 
-
 type ristrettoCache struct {
 	ristCache *ristretto.Cache
 }
 
-func (r ristrettoCache) Put(key string, value interface{}) (interface{}, error) {
-	panic("implement me")
+func (r ristrettoCache) Set(key string, value interface{}) error {
+	rs := r.ristCache.Set(key, value, 0)
+	if rs {
+		return nil
+	} else {
+		return errors.New("failed to save the value")
+	}
 }
 
 func (r ristrettoCache) Get(key string) (interface{}, error) {
-	panic("implement me")
+	v, b := r.ristCache.Get(key)
+	if b {
+		return v, nil
+	} else {
+		return nil, errors.New(fmt.Sprintf("failed to get the value of the key %v", key))
+	}
 }
 
-func (r ristrettoCache) Evict(key string) (interface{}, error) {
-	panic("implement me")
+func (r ristrettoCache) Del(key string) error {
+	r.ristCache.Del(key)
+	return nil
 }
 
-func (r ristrettoCache) Touch(key string, duration time.Duration) (interface{}, error) {
-	panic("implement me")
+func (r ristrettoCache) Ttl(key string, value interface{}, duration time.Duration) error {
+
+	if r.ristCache.SetWithTTL(key, value, 0, duration) {
+		return nil
+	} else {
+		return errors.New(fmt.Sprintf("failed to set the key with ttl: %v", key))
+	}
 }
 
 func defaultCache() Cache {
@@ -92,4 +99,3 @@ func defaultCache() Cache {
 	}
 
 }
-

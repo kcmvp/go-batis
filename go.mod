@@ -3,17 +3,12 @@ module github.com/kcmvp/go-batis
 go 1.14
 
 require (
-	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/antchfx/xmlquery v1.3.3
-	github.com/buraksezer/olric v0.2.0 // indirect
+	github.com/antonmedv/expr v1.8.9
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.0.3
-	github.com/go-redis/redis/v8 v8.3.1
-	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/lib/pq v1.8.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.4
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
-	github.com/spf13/viper v1.7.1
-	golang.org/x/sys v0.0.0-20200929083018-4d22bbb62b3c // indirect
-	google.golang.org/appengine v1.6.7 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
+	github.com/stretchr/testify v1.6.1
+	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

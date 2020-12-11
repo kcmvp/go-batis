@@ -923,7 +923,7 @@ func BenchmarkTraversalsByName(b *testing.B) {
 
 	m := NewMapper("")
 	t := reflect.TypeOf(D{})
-	names := []string{"C", "B", "A", "Value"}
+	names := []string{"C", "B", "A", "statement"}
 
 	b.ResetTimer()
 

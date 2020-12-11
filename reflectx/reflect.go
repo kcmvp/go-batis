@@ -133,7 +133,7 @@ func (m *Mapper) FieldMap(v reflect.Value) map[string]reflect.Value {
 
 // FieldByName returns a field by its mapped name as a reflect.Value.
 // Panics if v's Kind is not Struct or v is not Indirectable to a struct Kind.
-// Returns zero Value if the name is not found.
+// Returns zero statement if the name is not found.
 func (m *Mapper) FieldByName(v reflect.Value, name string) reflect.Value {
 	v = reflect.Indirect(v)
 	mustBe(v, reflect.Struct)
@@ -148,7 +148,7 @@ func (m *Mapper) FieldByName(v reflect.Value, name string) reflect.Value {
 
 // FieldsByName returns a slice of values corresponding to the slice of names
 // for the value.  Panics if v's Kind is not Struct or v is not Indirectable
-// to a struct Kind.  Returns zero Value for each name not found.
+// to a struct Kind.  Returns zero statement for each name not found.
 func (m *Mapper) FieldsByName(v reflect.Value, names []string) []reflect.Value {
 	v = reflect.Indirect(v)
 	mustBe(v, reflect.Struct)
