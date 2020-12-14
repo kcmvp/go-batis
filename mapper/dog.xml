@@ -17,7 +17,7 @@
     <update id="updateDog" cacheKey="id" cacheName="dogcache">
         update Dog
         <set>
-            <if test="name != null">
+            <if test="len(name) > 0">
                 name = #{name},
             </if>
             <if test="age != null">

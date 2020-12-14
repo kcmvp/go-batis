@@ -78,12 +78,12 @@ func (s *Session) WithSqlHook(h ...SqlHookFunc) {
 }
 
 // Select using this DB.
-func (s *Session) Query(dest interface{}, mapper SqlMapper, args ...interface{}) error {
-	return s.QueryContext(context.Background(), dest, mapper, args)
+func (s *Session) Query(dest interface{}, mapper SqlMapper, arg interface{}) error {
+	return s.QueryContext(context.Background(), dest, mapper, arg)
 }
 
-func (s Session) QueryContext(ctx context.Context, dest interface{}, mapper SqlMapper, args ...interface{}) error {
-	if clause, err := s.build(ctx, mapper, true); err != nil {
+func (s Session) QueryContext(ctx context.Context, dest interface{}, mapper SqlMapper, arg interface{}) error {
+	if clause, err := s.build(ctx, mapper, arg); err != nil {
 		return err
 	} else {
 		if key, err := clause.CacheKey(); err == nil {
@@ -104,12 +104,12 @@ func (s Session) QueryContext(ctx context.Context, dest interface{}, mapper SqlM
 }
 
 // update, delete
-func (s *Session) Exec(mapper SqlMapper, args ...interface{}) error {
+func (s *Session) Exec(mapper SqlMapper, args interface{}) error {
 	return s.ExecContext(context.Background(), mapper, args)
 }
 
-func (s Session) ExecContext(ctx context.Context, mapper SqlMapper, args ...interface{}) error  {
-	if clause, err := s.build(ctx, mapper, true); err != nil {
+func (s Session) ExecContext(ctx context.Context, mapper SqlMapper, arg interface{}) error {
+	if clause, err := s.build(ctx, mapper, arg); err != nil {
 		return err
 	} else {
 		if key, err := clause.CacheKey(); err == nil {
@@ -121,11 +121,12 @@ func (s Session) ExecContext(ctx context.Context, mapper SqlMapper, args ...inte
 	return nil
 }
 
-func (s Session) build(ctx context.Context, m SqlMapper, isSelect bool) (clause *Clause, err error) {
-	if clause, err = m.build(s.mapperDir); err == nil {
-		if isSelect != (clause.SqlType() == "select") {
-			return nil, fmt.Errorf("incorrect statement type:[%v] : %v", clause.SqlType(), clause.Statement())
-		}
+func (s Session) build(ctx context.Context, m SqlMapper, args interface{}) (clause *Clause, err error) {
+	//@FixMe need to check args type, only support map & struct
+	if clause, err = m.build(s.mapperDir, args); err == nil {
+		//if isSelect != (clause.SqlType() == "select") {
+		//	return nil, fmt.Errorf("incorrect statement type:[%v] : %v", clause.SqlType(),.  clause.Statement())
+		//}
 		for _, hook := range s.sqlHooks {
 			// todo
 			if st, err := hook(ctx, clause); err != nil {

@@ -15,8 +15,6 @@ import (
 
 type SqlMapper string
 
-
-
 type SqlType string
 
 var sqlTypes = []SqlType{"insert", "select", "delete", "update", "sql"}
@@ -40,12 +38,14 @@ const CACHE_KEY_ATTR, CACHE_NAME_ATTR = "cacheKey", "cacheName"
 
 var pattern = regexp.MustCompile(`#\{\w*\.?\w*\}`)
 
-// mapper file naming pattern is ${struct}Mapper.xml
-// naming standard of mapper is ${file name}.${mapper id}
+// mapperId file naming pattern is ${struct}Mapper.xml
+// naming standard of mapperId is ${file name}.${mapperId}
 // ex: `dog.findByName` means its definition in the `dog.xml` and the `id' attribute is `findByName`
-func (mapper SqlMapper) build(mapperDir string) (*Clause, error) {
+func (mapper SqlMapper) build(mapperDir string, args interface{}) (*Clause, error) {
 	mapperName := string(mapper)
-	clause := &Clause{}
+	clause := &Clause{
+		args: args,
+	}
 	var fName string
 	if entries := strings.Split(mapperName, "."); len(entries) == 2 {
 		fName = fmt.Sprintf("%v/%v.xml", mapperDir, entries[0])
@@ -113,11 +113,9 @@ func (clause *Clause) buildMapperNode(id string) error {
 	}
 	var buff bytes.Buffer
 	for node = node.FirstChild; node != nil; node = node.NextSibling {
-		fmt.Println(fmt.Sprintf("The value is: %v", node.Data))
 		clause.buildXmlNode(node, &buff)
 		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			clause.buildXmlNode(node,&buff)
-			fmt.Println(fmt.Sprintf("The value is: %v", child.Data))
+			clause.buildXmlNode(child, &buff)
 		}
 	}
 	clause.statement = buff.String()
@@ -125,41 +123,45 @@ func (clause *Clause) buildMapperNode(id string) error {
 	return nil
 }
 
-
+//@FixMe need to remove redundant \n\t
 func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err error) {
 	//buf := bytes.NewBufferString(clause.statement)
 	switch n.Type {
 	case xmlquery.TextNode, xmlquery.CharDataNode:
-		xml.EscapeText(buff, []byte(n.Data))
+		//@FixMe need to check #{}, in some case there #{} in the statement
+		buff.WriteString(n.Data)
 		return
 	// for xmlquery.ElementNode
 	case xmlquery.ElementNode:
 		//@todo
 		t := n.Data
 		if strings.EqualFold("where", t) || strings.EqualFold("set", t) {
-			xml.EscapeText(buff, []byte(n.Data))
+			//xml.EscapeText(buff, []byte(n.Data))
+			buff.WriteString(t)
 		} else if strings.EqualFold("include", t) {
 			if b := clause.findChildById(n.SelectAttr("refid")); b != nil {
 				xml.EscapeText(buff, []byte(b.InnerText()))
 			} else {
 				err = fmt.Errorf("failed to find the include %v", n.SelectAttr("refid"))
 			}
-		} else if strings.EqualFold("if", t) {
+		} else if strings.EqualFold("if", t) && clause.args != nil {
 			el := n.SelectAttr("test")
 			var value interface{}
 			if value, err = expr.Eval(el, clause.args); err == nil {
 				if value.(bool) {
 					for _, par := range pattern.FindAllString(n.InnerText(), -1) {
-						par = strings.TrimSuffix(strings.TrimPrefix(par, "${"), "}")
+						par = strings.TrimSuffix(strings.TrimPrefix(par, "#{"), "}")
 						if value, err = expr.Eval(par, clause.args); err == nil {
 							clause.sqlParams = append(clause.sqlParams, value)
 						} else {
+							fmt.Println(fmt.Sprintf("failed to evaluate the expression: %v, %v", par, err))
 							return
 						}
 					}
-					pattern.ReplaceAllString(n.InnerText(), " ? ")
-					xml.EscapeText(buff, []byte(pattern.ReplaceAllString(n.InnerText(), " ? ")))
+					buff.WriteString(pattern.ReplaceAllString(n.InnerText(), " ? "))
 				}
+			} else {
+				fmt.Println(fmt.Sprintf("failed to evaluate the expression: %v, %v", el, err))
 			}
 		}
 		return
@@ -168,4 +170,3 @@ func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err er
 		return
 	}
 }
-
