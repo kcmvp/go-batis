@@ -14,23 +14,23 @@
         </foreach>
     </insert>
 
-    <update id="updateDog" cacheKey="name" cacheName="dogcache">
+    <update id="updateDog" cacheKey="#{name}" cacheName="dogcache">
         update Dog
         <set>
             <if test="len(name) > 0">
                 name = #{name},
             </if>
-            <if test="age != null">
+            <if test="age > 0">
                 age = #{age},
             </if>
-            <if test="price != null">
+            <if test="price > 0">
                 price = #{price},
             </if>
             updated_at = CURRENT_TIMESTAMP()
         </set>
         where id = #{id}
     </update>
-    <select id="findDogById" cacheName="dogCache" cacheKey="#{id}">
+    <select id="findDogById" cacheName="" cacheKey="#{id}">
         select *
         from Dog
         where id = #{id}
@@ -39,7 +39,7 @@
         select count(1)
         from from Dog
         <where>
-            <if test="name != null">
+            <if test="len(name) > 0">
                 and name = #{name}
             </if>
             <if test="age > 0">

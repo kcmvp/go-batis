@@ -101,15 +101,22 @@ func (clause *Clause) buildMapperNode(id string) error {
 	}
 	clause.id = id
 	clause.sqlType = SqlType(node.Data)
-	clause.cacheName = strings.TrimSpace(node.SelectAttr(CACHE_NAME_ATTR))
-	key := strings.TrimSpace(node.SelectAttr(CACHE_KEY_ATTR))
-	if len(clause.cacheName) > 0 && len(key) > 0 {
-		if v, err := expr.Eval(key, clause.args); err != nil || v == nil {
-			return fmt.Errorf("invalid cache key %s, ignore cache for sql %v", key, id)
+
+	cacheName := strings.TrimSpace(node.SelectAttr(CACHE_NAME_ATTR))
+	cacheKeyExp := strings.TrimSpace(node.SelectAttr(CACHE_KEY_ATTR))
+	if len(cacheName) > 0 && len(cacheKeyExp) < 1 || len(cacheName) < 1 && len(cacheKeyExp) > 0 {
+		return fmt.Errorf("mapper#%v: empty cache name or key", id)
+	} else if len(cacheKeyExp) > 0 && !pattern.MatchString(cacheKeyExp) {
+		return fmt.Errorf("mapper#%v: cache key must be an expression %v", id, cacheKeyExp)
+	} else if len(cacheName) > 0 && len(cacheKeyExp) > 0 {
+		if v, err := clause.eval(cacheKeyExp); err != nil || v == nil {
+			return fmt.Errorf("mapper#%v: invalid cache key %v", id, cacheKeyExp)
 		} else {
+			clause.cacheName = cacheName
 			clause.cacheKey = fmt.Sprintf("%v", v)
 		}
 	}
+
 	var buff bytes.Buffer
 	for node = node.FirstChild; node != nil; node = node.NextSibling {
 		if err := clause.buildXmlNode(node, &buff); err != nil {
@@ -121,39 +128,39 @@ func (clause *Clause) buildMapperNode(id string) error {
 			}
 		}
 	}
-	clause.statement = buff.String()
+	clause.statement = strings.TrimSpace(buff.String())
 	return nil
 }
 
-//@FixMe need to remove redundant \n\t
+//@FixMe need to remove redundant \n\r
 func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err error) {
-	st := strings.TrimSpace(n.Data)
+	st := n.Data
 	switch n.Type {
 	case xmlquery.TextNode, xmlquery.CharDataNode:
-		//@FixMe need to check #{}, in some case there #{} in the statement
-		if st, err = clause.placeHolder(n.Data); err == nil {
-			buff.WriteString(st)
+		if st, err = clause.processHolder(n.Data); err == nil {
+			prettySql(buff, st)
 		}
 		return
 	// for xmlquery.ElementNode
 	case xmlquery.ElementNode:
 		if strings.EqualFold("where", st) || strings.EqualFold("set", st) {
-			buff.WriteString(st)
+			//buff.WriteString(st)
+			prettySql(buff, st)
 		} else if strings.EqualFold("include", st) {
 			if b := clause.findChildById(n.SelectAttr("refid")); b != nil {
-				xml.EscapeText(buff, []byte(b.InnerText()))
+				//xml.EscapeText(buff, []byte(b.InnerText()))
+				prettySql(buff, b.InnerText())
 			} else {
-				err = fmt.Errorf("failed to find the include %v", n.SelectAttr("refid"))
+				err = fmt.Errorf("mapper#%v:failed to find the include %v", clause.id, n.SelectAttr("refid"))
 			}
 		} else if strings.EqualFold("if", st) && clause.args != nil {
 			el := n.SelectAttr("test")
-			var value interface{}
-			if value, err = expr.Eval(el, clause.args); err == nil && value.(bool) {
-				if st, err = clause.placeHolder(n.InnerText()); err == nil {
-					buff.WriteString(st)
+			if value, ignoreErr := expr.Eval(el, clause.args); ignoreErr == nil && value.(bool) {
+				if st, err = clause.processHolder(n.InnerText()); err == nil {
+					prettySql(buff, st)
 				}
-			} else if err != nil {
-				return fmt.Errorf("failed to resolve the expression: %v%w", el, err)
+			} else {
+				fmt.Println(fmt.Sprintf("mapper#%v:expression evaluate false : %v. %v", clause.id, el, ignoreErr))
 			}
 		}
 		return
@@ -163,14 +170,18 @@ func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err er
 	}
 }
 
-func (clause *Clause) placeHolder(str string) (string, error) {
+func (clause Clause) eval(exp string) (interface{}, error) {
+	par := strings.TrimSuffix(strings.TrimPrefix(exp, "#{"), "}")
+	return expr.Eval(par, clause.args)
+}
+
+func (clause *Clause) processHolder(str string) (string, error) {
 	var buff bytes.Buffer
 	for _, par := range pattern.FindAllString(str, -1) {
-		par = strings.TrimSuffix(strings.TrimPrefix(par, "#{"), "}")
-		if value, err := expr.Eval(par, clause.args); err == nil && value != nil {
+		if value, err := clause.eval(par); err == nil && value != nil {
 			clause.sqlParams = append(clause.sqlParams, value)
 		} else {
-			return "", fmt.Errorf("failed to resolve the expression: #{%v} for mapper:%v. %w", par, clause.id, err)
+			return "", fmt.Errorf("mapper#%v: failed to resolve the expression: %v. %w", clause.id, par, err)
 		}
 	}
 	buff.WriteString(pattern.ReplaceAllString(str, "?"))
@@ -178,7 +189,12 @@ func (clause *Clause) placeHolder(str string) (string, error) {
 	return buff.String(), nil
 }
 
-//func prettyPrint(str string) string {
-//	str = strings.ReplaceAll(str, "\n"," ")
-//
-//}
+func prettySql(buff *bytes.Buffer, str string) {
+	str = strings.ReplaceAll(str, "\n\r", "")
+	str = strings.TrimSpace(str)
+	if len(str) > 0 {
+		//buff.WriteString(str + " ")
+		xml.Escape(buff, []byte(str+" "))
+	}
+
+}
