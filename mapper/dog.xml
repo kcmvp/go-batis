@@ -14,7 +14,7 @@
         </foreach>
     </insert>
 
-    <update id="updateDog" cacheKey="id" cacheName="dogcache">
+    <update id="updateDog" cacheKey="name" cacheName="dogcache">
         update Dog
         <set>
             <if test="len(name) > 0">
