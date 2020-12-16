@@ -28,7 +28,10 @@ var mappers = []struct {
 	{"case2: simple create", "dog.createDog", dogMapF, "", "insert into Dog(name,age,price) values (?,?,?)"},
 	{"case3: with partial parameters", "dog.updateDog", dogMapP, "", "update Dog set name = ?, age = ?, updated_at = CURRENT_TIMESTAMP() where id = ?"},
 	{"case4: with all parameters", "dog.updateDog", dogMapF, "", "update Dog set name = ?, age = ?, price = ?, updated_at = CURRENT_TIMESTAMP() where id = ?"},
-	{"case5: miss cache name", "dog.findDogById", dogMapF, "mapper#findDogById: empty cache name or key", ""},
+	{"case5: miss cache name", "dog.findDogByIdNoCacheName", dogMapF, "mapper#findDogByIdNoCacheName: empty cache name or key", ""},
+	{"case6: simple find clause", "dog.findDogById", dogMapF, "", "select * from Dog where id = ?"},
+	{"case6: dynamic where", "dog.searchByExample", dogMapF, "", "select count(1) from Dog where name = ? and age = ?"},
+	{"case7: delete statement missed parameter", "dog.deleteDogById", dogMapF, "mapper#deleteDogById: failed to resolve the expression: #{levySerialNumber}", ""},
 }
 
 var mapDir = "./mapper"

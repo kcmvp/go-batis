@@ -2,7 +2,6 @@ package batis
 
 import (
 	"bytes"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/antchfx/xmlquery"
@@ -189,12 +188,20 @@ func (clause *Clause) processHolder(str string) (string, error) {
 	return buff.String(), nil
 }
 
+var spacePattern = regexp.MustCompile(`\s+`)
+var newLinePattern = regexp.MustCompile(`\n+`)
+var wherePattern = regexp.MustCompile(`\s+where\s+$`)
+var firstAnd = regexp.MustCompile(`^(?i)and\s+`)
 func prettySql(buff *bytes.Buffer, str string) {
-	str = strings.ReplaceAll(str, "\n\r", "")
+	str = newLinePattern.ReplaceAllString(str," ")
+	str = spacePattern.ReplaceAllString(str," ")
 	str = strings.TrimSpace(str)
 	if len(str) > 0 {
-		//buff.WriteString(str + " ")
-		xml.Escape(buff, []byte(str+" "))
+		if wherePattern.MatchString(buff.String()) && firstAnd.MatchString(str) {
+			str = firstAnd.ReplaceAllString(str,"")
+		}
+		buff.WriteString(str + " ")
+		//xml.Escape(buff, []byte(str+" "))
 	}
 
 }

@@ -30,17 +30,24 @@
         </set>
         where id = #{id}
     </update>
-    <select id="findDogById" cacheName="" cacheKey="#{id}">
+    <select id="findDogByIdNoCacheName" cacheName="" cacheKey="#{id}">
         select *
         from Dog
         where id = #{id}
     </select>
+    <select id="findDogById" cacheName="dogCache" cacheKey="#{id}">
+        select *
+        from Dog
+        where id = #{id}
+    </select>
+
+
     <select id="searchByExample">
         select count(1)
-        from from Dog
+        from Dog
         <where>
             <if test="len(name) > 0">
-                and name = #{name}
+                     and name = #{name}
             </if>
             <if test="age > 0">
                 and age = #{age}
