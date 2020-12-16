@@ -47,7 +47,7 @@
         from Dog
         <where>
             <if test="len(name) > 0">
-                     and name = #{name}
+                     AND name = #{name}
             </if>
             <if test="age > 0">
                 and age = #{age}
@@ -60,28 +60,19 @@
     </delete>
 
     <!-- batch update begin -->
-    <sql id="updateWeekDayPrice">
+    <sql id="updateWeekDayPriceCase1">
         UPDATE T_WEEK_DAY_PRICE
         <set>
-            <if test="item.price != null">
-                PRICE = ${item.price},
+            <if test="price != null">
+                PRICE = ${price},
             </if>
-
-            <if test="item.updatedBy != null">
-                UPDATED_BY = ${item.updatedBy},
-            </if>
-
             UPDATED_AT = CURRENT_TIMESTAMP()
         </set>
-        where PRICE_PLAN_ID = ${item.pricePlanId}
-        and NUM_OF_WEEK = ${item.numOfWeek}
+        where PRICE_PLAN_ID = ${age}
+        and NUM_OF_WEEK = ${id}
     </sql>
 
-    <update id="updateWeekDayPriceWeekly">
-        <foreach  collection="list" item="item"  separator=";">
-            <include refid="updateWeekDayPrice"/>
-        </foreach>
-    </update>
+
     <!-- batch update end -->
     <sql id="base">
        name, age, size
@@ -92,7 +83,7 @@
             <if test="bo.source != null">
                 and SOURCE = #{bo.source}
             </if>
-            <if test="filterSources != null and filterSources.size &gt; 0">
+            <if test="filterSources != null and filterSources.size >= 0">
                 AND SOURCE in (<foreach collection="filterSources" item="item" index="index" separator=",">#{item}</foreach>)
             </if>
             <if test="bo.beginDate!= null">
@@ -102,7 +93,7 @@
                 <![CDATA[AND UPDATED_AT <= #{bo.endDate}]]>
             </if>
         </where>
-        <if test="size != null and size &gt; 0">
+        <if test="size != null and size > 0">
             LIMIT #{offset}, #{size}
         </if>
     </select>
