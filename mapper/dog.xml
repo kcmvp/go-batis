@@ -9,8 +9,8 @@
 
     <insert id="batchInsert">
         insert into Dog(name,age,price) values
-        <foreach collection="dogList" item="dog" index="index" separator=",">
-            (#{dog.name},#{dog.age},#{dog.price})
+        <foreach collection="#{dogList}" separator=",">
+            (#{name},#{age},#{price})
         </foreach>
     </insert>
 
@@ -77,6 +77,11 @@
     <sql id="base">
        name, age, size
     </sql>
+
+    <select id="selectByRef">
+        SELECT <include refid="base"/> FROM UUC_COMPANY
+        where id = #{id}
+    </select>
     <select id="findMyDog">
         SELECT <include refid="base"/> FROM UUC_COMPANY
         <where>
@@ -97,5 +102,37 @@
             LIMIT #{offset}, #{size}
         </if>
     </select>
+
+
+    <select id="queryProcessFileVo">
+        SELECT f.ID
+        , f.PROCESS_KEY
+        , f.PROCESS_NAME
+        , f.MODULE_CODE
+        , m.MODULE_NAME
+        , f.NOTE
+        , f.STATUS
+        FROM UBPC_PROCESS_FILE f
+        LEFT JOIN UBPC_MODULE m ON m.MODULE_CODE = f.MODULE_CODE
+        <include refid="condition"></include>
+    </select>
+
+    <sql id="condition">
+        <where>
+            f.MODULE_CODE = #{moduleCode}
+            <if test="keyword != null and keyword != ''">
+                AND (f.PROCESS_NAME LIKE CONCAT('%',#{keyword},'%') OR f.PROCESS_KEY LIKE CONCAT('%',#{keyword},'%'))
+            </if>
+            <if test="processKey != null and processKey != ''">
+                AND f.PROCESS_KEY = #{processKey}
+            </if>
+            <if test="processName != null and processName != ''">
+                AND f.PROCESS_NAME LIKE CONCAT('%',#{processName},'%')
+            </if>
+            <if test="status != null">
+                AND f.STATUS = #{status}
+            </if>
+        </where>
+    </sql>
 
 </mapper>

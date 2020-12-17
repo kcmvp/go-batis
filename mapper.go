@@ -149,6 +149,7 @@ func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err er
 			if b := clause.findChildById(n.SelectAttr("refid")); b != nil {
 				//xml.EscapeText(buff, []byte(b.InnerText()))
 				prettySql(buff, b.InnerText())
+
 			} else {
 				err = fmt.Errorf("mapper#%v:failed to find the include %v", clause.id, n.SelectAttr("refid"))
 			}
@@ -188,7 +189,7 @@ func (clause *Clause) processHolder(str string) (string, error) {
 	return buff.String(), nil
 }
 
-var newLineSpacePattern = regexp.MustCompile(`\s+|\n+`)
+var newLineSpacePattern = regexp.MustCompile(`\s+`)
 var sqlWherePattern = regexp.MustCompile(`\s+where\s+$`)
 var sqlAnd = regexp.MustCompile(`^(?i)and\s+`)
 

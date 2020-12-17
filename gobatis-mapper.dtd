@@ -65,7 +65,7 @@
                 >
 
 
-        <!ELEMENT sql (#PCDATA | include | where | set | foreach | if)*>
+        <!ELEMENT sql (#PCDATA | where | set | foreach | if)*>
         <!ATTLIST sql
                 id CDATA #REQUIRED
                 lang CDATA #IMPLIED
