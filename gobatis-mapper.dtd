@@ -77,8 +77,10 @@
         <!ELEMENT set (#PCDATA | include | where | set | foreach | if)*>
 
         <!ELEMENT foreach (#PCDATA | include |where | set | foreach | if)*>
+
+        <!-- collection CDATA #REQUIRED -->
         <!ATTLIST foreach
-                collection CDATA #REQUIRED
+                collection CDATA #IMPLIED
                 item CDATA #IMPLIED
                 index CDATA #IMPLIED
                 open CDATA #IMPLIED
