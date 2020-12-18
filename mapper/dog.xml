@@ -41,6 +41,13 @@
         where id = #{id}
     </select>
 
+    <select id="findDogByIdEscape" cacheName="dogCache" cacheKey="#{id}">
+        select *
+        from Dog
+        where id &lt;= #{id}
+        and price &gt;= 100
+    </select>
+
 
     <select id="searchByExample">
         select count(1)
@@ -104,7 +111,7 @@
     </select>
 
 
-    <select id="queryProcessFileVo">
+    <select id="selectByRefNest">
         SELECT f.ID
         , f.PROCESS_KEY
         , f.PROCESS_NAME
@@ -119,18 +126,12 @@
 
     <sql id="condition">
         <where>
-            f.MODULE_CODE = #{moduleCode}
-            <if test="keyword != null and keyword != ''">
-                AND (f.PROCESS_NAME LIKE CONCAT('%',#{keyword},'%') OR f.PROCESS_KEY LIKE CONCAT('%',#{keyword},'%'))
+            f.MODULE_CODE = #{id}
+            <if test="len(name) > 0">
+                AND (f.PROCESS_NAME LIKE CONCAT('%',#{name},'%') OR f.PROCESS_KEY LIKE CONCAT('%',#{name},'%'))
             </if>
-            <if test="processKey != null and processKey != ''">
-                AND f.PROCESS_KEY = #{processKey}
-            </if>
-            <if test="processName != null and processName != ''">
-                AND f.PROCESS_NAME LIKE CONCAT('%',#{processName},'%')
-            </if>
-            <if test="status != null">
-                AND f.STATUS = #{status}
+            <if test="age > 0">
+                AND f.age = #{age}
             </if>
         </where>
     </sql>

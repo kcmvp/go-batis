@@ -146,9 +146,19 @@ func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err er
 			//buff.WriteString(st)
 			prettySql(buff, st)
 		} else if strings.EqualFold("include", st) {
-			if b := clause.findChildById(n.SelectAttr("refid")); b != nil {
+			if node := clause.findChildById(n.SelectAttr("refid")); node != nil {
 				//xml.EscapeText(buff, []byte(b.InnerText()))
-				prettySql(buff, b.InnerText())
+				//prettySql(buff, b.InnerText())
+				for node = node.FirstChild; node != nil; node = node.NextSibling {
+					if err = clause.buildXmlNode(node, buff); err != nil {
+						return err
+					}
+					for child := node.FirstChild; child != nil; child = child.NextSibling {
+						if err = clause.buildXmlNode(child, buff); err != nil {
+							return err
+						}
+					}
+				}
 
 			} else {
 				err = fmt.Errorf("mapper#%v:failed to find the include %v", clause.id, n.SelectAttr("refid"))
@@ -158,6 +168,9 @@ func (clause *Clause) buildXmlNode(n *xmlquery.Node, buff *bytes.Buffer) (err er
 			if value, ignoreErr := expr.Eval(el, clause.args); ignoreErr == nil && value.(bool) {
 				if st, err = clause.processHolder(n.InnerText()); err == nil {
 					prettySql(buff, st)
+				} else {
+					//fmt.Println(fmt.Sprintf("mapper#%v:expression evaluate false : %v. %v", clause.id, el, err))
+					return
 				}
 			} else {
 				fmt.Println(fmt.Sprintf("mapper#%v:expression evaluate false : %v. %v", clause.id, el, ignoreErr))
