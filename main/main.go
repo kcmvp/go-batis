@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/antonmedv/expr"
+	"reflect"
 )
 
 type VM struct {
@@ -12,18 +13,27 @@ type VM struct {
 
 func main() {
 
-	/*
 	env := map[string]interface{}{
 		"foo": 1,
 		"bar": 2,
 	}
 	out, err := expr.Eval("foo + bar > 1", env)
-	 */
 
-	env := VM{Foo: 1, Bar: 2}
-	out, err := expr.Eval("Foo", env)
+	//env := VM{Foo: 1, Bar: 2}
+	//out, err := expr.Eval("Foo", env)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(out)
+	fmt.Println(out)
+
+	s := reflect.ValueOf(env)
+
+	fmt.Println(s)
+	fmt.Println(s.Len())
+	fmt.Println(s.Index(0))
+
+
+
+
+
 }

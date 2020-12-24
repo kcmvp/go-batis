@@ -8,25 +8,25 @@
     </insert>
 
     <!--passing parameter is a slice which is the right collection wants to iterate -->
-    <insert id="batchInsertCase1">
+    <insert id="forEachCase1">
         insert into Dog(name,age,price) values
         <foreach separator=",">
             (#{name},#{age},#{price})
         </foreach>
     </insert>
     <!--passing parameter is a struct or a map,  which contains the slice that wants to iterate -->
-    <insert id="batchInsertCase2">
+    <insert id="forEachCase2">
         insert into Dog(name,age,price) values
         <foreach collection="#{dogList}" item = "dog" separator=",">
-            (#{dog.name},#{dog.age},#{price})
+            (#{dog.name},#{dog.age},#{dog.price})
         </foreach>
     </insert>
 
 
-    <insert id="batchInsertCase2">
-        insert into Dog(name,age,price) values
-        <foreach collection="#{dogList}" item="dog" separator=",">
-            (#{dog.name},#{dog.age},#{dog.price})
+    <insert id="forEachCase3">
+        insert into Dog(color,name,age,price) values
+        <foreach collection="#{dogList}" item="dog">
+            (#{color},#{dog.name},#{dog.age},#{dog.price})
         </foreach>
     </insert>
 
