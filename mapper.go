@@ -190,21 +190,21 @@ var nestParamPattern = regexp.MustCompile(`#\{\s+\.\w*\}`)
 
 func (clause Clause) eval(exps []string, envs ...interface{}) ([]interface{}, error) {
 	var rt []interface{}
+	envs = append(envs, clause.args)
 	for _, exp := range exps {
 		par := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(exp, "#{"), "}"))
-		env := clause.args
-		if strings.HasPrefix(par, ".") {
-			if len(envs) < 1 {
-				return nil, fmt.Errorf("missed additional property for dot property: '%v'", exp)
+		var v interface{}
+		var err error
+		for _, env := range envs {
+			if v, err = expr.Eval(par, env); err == nil && v != nil {
+				rt = append(rt, v)
+				break
 			}
-			env = envs[0]
-			par = strings.ReplaceAll(par, ".", "")
 		}
-		if v, err := expr.Eval(par, env); err != nil || v == nil {
+		if err != nil || v == nil {
 			return nil, fmt.Errorf("can not resolve: '%v'", par)
-		} else {
-			rt = append(rt, v)
 		}
+
 	}
 	return rt, nil
 }
@@ -216,7 +216,7 @@ func (clause *Clause) sqlParameter(parent *xmlquery.Node, exp string) (string, e
 	if params := paramPattern.FindAllString(exp, -1); len(params) > 0 {
 		if parent.Data == "foreach" {
 			slicedArg := clause.args
-			collection := strings.TrimSpace(parent.SelectAttr("collection"))
+			collection := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(parent.SelectAttr("collection"), "#{"), "}"))
 			//item := strings.TrimSpace(parent.SelectAttr("item"))
 			separator := strings.TrimSpace(parent.SelectAttr("separator"))
 			if len(separator) == 0 {
@@ -232,7 +232,7 @@ func (clause *Clause) sqlParameter(parent *xmlquery.Node, exp string) (string, e
 			}
 			s := reflect.ValueOf(slicedArg)
 			for i := 0; i < s.Len(); i++ {
-				if values, err := clause.eval(params, s.Index(i)); err == nil && len(values) > 0 {
+				if values, err := clause.eval(params, s.Index(i).Interface()); err == nil && len(values) > 0 {
 					clause.sqlParams = append(clause.sqlParams, values...)
 				} else {
 					return "", fmt.Errorf("mapper#%v: %v, %w", clause.id, exp, err)

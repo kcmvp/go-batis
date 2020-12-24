@@ -8,7 +8,7 @@ import (
 
 type VM struct {
 	Foo int
-	Bar int
+	Bar *int
 }
 
 func main() {
@@ -17,7 +17,12 @@ func main() {
 		"foo": 1,
 		"bar": 2,
 	}
-	out, err := expr.Eval("foo + bar > 1", env)
+	vm := VM{
+		Foo: 2,
+	}
+	//out, err := expr.Eval("foo + bar > 1", env)
+	out, err := expr.Eval("Bar", vm)
+
 
 	//env := VM{Foo: 1, Bar: 2}
 	//out, err := expr.Eval("Foo", env)

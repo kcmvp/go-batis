@@ -71,7 +71,8 @@ var mappers = []struct {
 	{"case10: nest sql ref", "dog.selectByRefNest", dogMapF, true, "SELECT f.ID , f.PROCESS_KEY , f.PROCESS_NAME , f.MODULE_CODE , m.MODULE_NAME , f.NOTE , f.STATUS FROM UBPC_PROCESS_FILE f LEFT JOIN UBPC_MODULE m ON m.MODULE_CODE = f.MODULE_CODE where f.MODULE_CODE = ? AND (f.PROCESS_NAME LIKE CONCAT('%',?,'%') OR f.PROCESS_KEY LIKE CONCAT('%',?,'%')) AND f.age = ?"},
 	{"case11: sql with escape", "dog.findDogByIdEscape", dogMapF, true, "select * from Dog where id <= ? and price >= 100"},
 	{"case12: invalid parameter", "dog.forEachCase1", dogMapF, false, "is not a slice"},
-	//{"case13: happy flow", "dog.forEachCase1", dogList, true, "is not a slice"},
+	{"case13: happy flow", "dog.forEachCase1", dogList, true, "insert into Dog(name,age,price) values (?,?,?),(?,?,?)"},
+	{"case14: ", "dog.forEachCase2", redDog, true, "insert into Dog(name,age,price) values (?,?,?);(?,?,?)"},
 }
 
 var mapDir = "./mapper"
@@ -86,14 +87,14 @@ func TestMapperBuildCharData(t *testing.T) {
 				assert.NotNil(err, m.desc)
 				assert.Contains(err.Error(), m.msg, m.desc)
 			} else {
-				assert.Nil(err)
+				assert.Nil(err,m.mapperId)
 				assert.Equal(m.msg, clause.statement, m.mapperId, m.desc)
 
-				if reflect.ValueOf(m.arg).Kind() != reflect.Map {
+				if reflect.ValueOf(m.arg).Kind() == reflect.Map {
 					s := reflect.ValueOf(m.arg)
 					vs := make([]interface{}, 0, s.Len())
 					for _, key := range s.MapKeys() {
-						vs = append(vs, s.MapIndex(key))
+						vs = append(vs, s.MapIndex(key).Interface())
 					}
 					for _, v := range clause.sqlParams {
 						assert.True(func(i interface{}) bool {
