@@ -86,20 +86,25 @@ func (s Session) QueryContext(ctx context.Context, dest interface{}, mapper SqlM
 	if clause, err := s.build(ctx, mapper, arg); err != nil {
 		return err
 	} else {
-		if key, err := clause.CacheKey(); err == nil {
-			if rt, err := s.Get(key); err != nil {
-				defer func() {
-					s.Set(key, dest)
-				}()
-			} else {
+		cacheKey :=""
+		if cacheKey, _ = clause.CacheKey(); len(cacheKey) > 0 {
+			if rt, err := s.Get(cacheKey); err == nil {
 				//@todo unmarshall the json to object
 				fmt.Println(fmt.Sprintf("@todo %v", rt))
 				return nil
 			}
 		}
+		if rows, err := s.DB.Query(clause.statement, arg); err == nil {
+			//@todo
+			fmt.Println(rows)
+			//@todo save to cache
+			if len(cacheKey) > 0 {
+				defer func() {
+					s.Set(cacheKey, nil)
+				}()
+			}
+		}
 	}
-	// dont cache the result
-	//@todo
 	return nil
 }
 

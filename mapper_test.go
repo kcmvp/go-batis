@@ -78,17 +78,17 @@ var mappers = []struct {
 var mapDir = "./mapper"
 
 func TestMapperBuildCharData(t *testing.T) {
-	assert := assert.New(t)
+	assertion := assert.New(t)
 	for _, m := range mappers {
 		t.Run(m.mapperId, func(t *testing.T) {
 			mapper := SqlMapper(m.mapperId)
 			clause, err := mapper.build(mapDir, m.arg)
 			if !m.positive {
-				assert.NotNil(err, m.desc)
-				assert.Contains(err.Error(), m.msg, m.desc)
+				assertion.NotNil(err, m.desc)
+				assertion.Contains(err.Error(), m.msg, m.desc)
 			} else {
-				assert.Nil(err,m.mapperId)
-				assert.Equal(m.msg, clause.statement, m.mapperId, m.desc)
+				assertion.Nil(err,m.mapperId)
+				assertion.Equal(m.msg, clause.statement, m.mapperId, m.desc)
 
 				if reflect.ValueOf(m.arg).Kind() == reflect.Map {
 					s := reflect.ValueOf(m.arg)
@@ -97,7 +97,7 @@ func TestMapperBuildCharData(t *testing.T) {
 						vs = append(vs, s.MapIndex(key).Interface())
 					}
 					for _, v := range clause.sqlParams {
-						assert.True(func(i interface{}) bool {
+						assertion.True(func(i interface{}) bool {
 							for _, param := range vs {
 								if param == v {
 									return true
