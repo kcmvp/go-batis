@@ -1,6 +1,6 @@
 module github.com/kcmvp/go-batis
 
-go 1.14
+go 1.16
 
 require (
 	github.com/antchfx/xmlquery v1.3.3
