@@ -132,6 +132,12 @@ func (ds *DataSource) Exec(mapper SqlMapper, args interface{}) error {
 	return ds.ExecContext(context.Background(), mapper, args)
 }
 
+func (ds *DataSource) ExecSql(query string, args ...interface{}) (sql.Result, error) {
+	return ds.DB.Exec(query, args...)
+}
+
+
+
 func (ds *DataSource) ExecContext(ctx context.Context, mapper SqlMapper, arg interface{}) error {
 	if clause, err := ds.build(ctx, mapper, arg); err != nil {
 		return err
