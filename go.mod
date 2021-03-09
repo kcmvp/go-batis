@@ -5,8 +5,10 @@ go 1.16
 require (
 	github.com/antchfx/xmlquery v1.3.3
 	github.com/antonmedv/expr v1.8.9
+	github.com/brianvoe/gofakeit/v6 v6.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.0.3
+	github.com/iancoleman/strcase v0.1.3 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.6 // indirect
 	github.com/stretchr/testify v1.6.1

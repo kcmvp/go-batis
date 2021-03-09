@@ -12,26 +12,26 @@ import (
 )
 
 type Company struct {
-	CmpId int32
-	CompanyName string
-	CompanyAddress string
-	SsNo string
+	CmpId          int32
+	CompanyName    string `fake:"{randomstring:20}"`
+	CompanyAddress string `fake:"{randomstring:30}"`
+	SsNo           string `fake:"{randomstring:12}"`
 }
 
 type Department struct {
-	DeptId int32
-	DeptName string
-	Status int
+	DeptId   int32
+	DeptName string `fake:"{randomstring:20}"`
+	Status   int    `fake:"{number:0,1}"`
 }
 
 type Employee struct {
-	EmpId int32
-	FirstName sql.NullString
-	LastName string
-	Birthday sql.NullTime
-	Salary sql.NullFloat64
-	Gender int
-	Status int
+	EmpId     int32
+	FirstName sql.NullString `fake:"{randomstring:20}"`
+	LastName  string         `fake:"{randomstring:20}"`
+	Birthday  sql.NullTime
+	Salary    sql.NullFloat64
+	Gender    int `fake:"{number:0,1}"`
+	Status    int `fake:"{number:0,1}"`
 }
 
 type DataSourceTestSuit struct {
@@ -52,8 +52,8 @@ func (s DataSourceTestSuit) SetupSuite() {
 			if !entry.IsDir() {
 				ba, _ := os.ReadFile(filepath.Join("./ddl", entry.Name()))
 				if _, err = s.ds.ExecSql(string(ba)); err != nil {
-					a := 1+1
-					fmt.Sprintf("failed to init schema %+v, %v", err,a)
+					a := 1 + 1
+					fmt.Sprintf("failed to init schema %+v, %v", err, a)
 				}
 			}
 		}
