@@ -15,6 +15,8 @@ import (
 
 type SqlMapper string
 
+
+
 type SqlType string
 
 var sqlTypes = []SqlType{"insert", "select", "delete", "update", "sql"}
