@@ -38,7 +38,7 @@ type Clause struct {
 
 const cacheKeyAttr, cacheNameAttr = "cacheKey", "cacheName"
 
-var paramPattern = regexp.MustCompile(`#\{\w*\.?\w*\}`)
+var paramPattern = regexp.MustCompile(`#{\w*\.?\w*}`)
 
 // mapperId file naming pattern is ${struct}Mapper.xml
 // naming standard of mapperId is ${file name}.${mapperId}
@@ -188,7 +188,7 @@ func (clause *Clause) buildXmlNode(parent, current *xmlquery.Node, buff *bytes.B
 	}
 }
 
-var nestParamPattern = regexp.MustCompile(`#\{\s+\.\w*\}`)
+var nestParamPattern = regexp.MustCompile(`#{\s+\.\w*}`)
 
 func (clause Clause) eval(exps []string, envs ...interface{}) ([]interface{}, error) {
 	var rt []interface{}
