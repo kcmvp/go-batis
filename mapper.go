@@ -1,11 +1,14 @@
-package batis
+package sql
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/antchfx/xmlquery"
 	"github.com/antonmedv/expr"
+	"github.com/kcmvp/go-batis/session"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,38 +16,60 @@ import (
 	"strings"
 )
 
-type SqlMapper string
+var nodeTypes = append(session.SqlTypes, "sql")
 
-
-
-type SqlType string
-
-var sqlTypes = []SqlType{"insert", "select", "delete", "update", "sql"}
-
-type StatementType string
-
-var statementTypes = []StatementType{"where", "set", "if", "foreach"}
+type Mapper string
 
 type Clause struct {
 	xmlRoot   *xmlquery.Node
 	args      interface{}
 	id        string
-	sqlType   SqlType
+	sqlType   session.SqlType
 	statement string
-	cacheName string
 	cacheKey  string
 	sqlParams []interface{}
 }
 
-const cacheKeyAttr, cacheNameAttr = "cacheKey", "cacheName"
+const cacheKeyAttr = "cacheKey"
 
 var paramPattern = regexp.MustCompile(`#{\w*\.?\w*}`)
+
+func (m Mapper) Name() string {
+	return string(m)
+}
+
+func (m Mapper) Query(arg interface{}) ([]interface{}, error) {
+	return m.QueryContext(context.Background(), arg)
+}
+
+func (m Mapper) QueryContext(ctx context.Context, arg interface{}) ([]interface{}, error) {
+	session := session.MapperSession(m.Name())
+	if clause, err := m.build(session.Name(), arg); err != nil {
+		return nil, err
+	} else if clause.sqlType != "select" {
+		return nil, fmt.Errorf(fmt.Sprintf("%v is not a select statement", m.Name()))
+	} else {
+		session.QueryCacheable(ctx, clause.statement, clause.cacheKey, arg)
+		//1: convert to struct
+	}
+	panic(fmt.Sprintf("session is %v", session))
+}
+
+func (m Mapper) Exec(arg interface{}) (sql.Result, error) {
+	return m.ExecContext(context.Background(), arg)
+}
+
+func (m Mapper) ExecContext(ctx context.Context, arg interface{}) (sql.Result, error) {
+	session := session.MapperSession(m.Name())
+	m.build(session.Name(), arg)
+	panic(fmt.Sprintf("session is %v", session))
+}
 
 // mapperId file naming pattern is ${struct}Mapper.xml
 // naming standard of mapperId is ${file name}.${mapperId}
 // ex: `dog.findByName` means its definition in the `dog.xml` and the `id' attribute is `findByName`
-func (mapper SqlMapper) build(mapperDir string, args interface{}) (*Clause, error) {
-	mapperName := string(mapper)
+func (m Mapper) build(mapperDir string, args interface{}) (*Clause, error) {
+	mapperName := string(m)
 	clause := &Clause{
 		args: args,
 	}
@@ -72,7 +97,7 @@ func (mapper SqlMapper) build(mapperDir string, args interface{}) (*Clause, erro
 
 func (clause *Clause) findChildById(id string) *xmlquery.Node {
 	var node *xmlquery.Node
-	for _, t := range sqlTypes {
+	for _, t := range nodeTypes {
 		node = xmlquery.FindOne(clause.xmlRoot, fmt.Sprintf("//%v[@id='%v']", t, id))
 		if node != nil && node.Data == string(t) {
 			break
@@ -81,14 +106,7 @@ func (clause *Clause) findChildById(id string) *xmlquery.Node {
 	return node
 }
 
-func (clause *Clause) CacheKey() (string, error) {
-	if len(clause.cacheName) > 0 && len(clause.cacheKey) > 0 {
-		return fmt.Sprintf("%v::%v", clause.cacheName, clause.cacheKey), nil
-	} else {
-		return "", fmt.Errorf("invalid cache key. cachePrefgix: %v, cacheId : %v", clause.cacheName, clause.cacheKey)
-	}
-}
-func (clause *Clause) SqlType() SqlType {
+func (clause *Clause) SqlType() session.SqlType {
 	return clause.sqlType
 }
 
@@ -102,19 +120,13 @@ func (clause *Clause) buildMapperNode(id string) error {
 		return errors.New(fmt.Sprintf("failed to find the node %v", id))
 	}
 	clause.id = id
-	clause.sqlType = SqlType(root.Data)
+	clause.sqlType = session.SqlType(root.Data)
 
-	cacheName := strings.TrimSpace(root.SelectAttr(cacheNameAttr))
 	cacheKeyExp := strings.TrimSpace(root.SelectAttr(cacheKeyAttr))
-	if len(cacheName) > 0 && len(cacheKeyExp) < 1 || len(cacheName) < 1 && len(cacheKeyExp) > 0 {
-		return fmt.Errorf("mapper#%v: empty cache name or key", id)
-	} else if len(cacheKeyExp) > 0 && !paramPattern.MatchString(cacheKeyExp) {
-		return fmt.Errorf("mapper#%v: cache key must be an expression %v", id, cacheKeyExp)
-	} else if len(cacheName) > 0 && len(cacheKeyExp) > 0 {
+	if len(cacheKeyExp) > 0 {
 		if v, err := clause.eval([]string{cacheKeyExp}); err != nil || len(v) == 0 {
 			return fmt.Errorf("mapper#%v: invalid cache key %v", id, cacheKeyExp)
 		} else {
-			clause.cacheName = cacheName
 			clause.cacheKey = fmt.Sprintf("%v", v[0])
 		}
 	}

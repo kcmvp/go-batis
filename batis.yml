@@ -1,0 +1,18 @@
+datasource:
+  default:
+    url: jdbc:h2:mem:admin
+    username: sa
+    password:
+    driverName: sqlite3
+    maxOpenConns: 50
+    maxIdleConns: 4
+  order:
+    url: jdbc:h2:mem:admin
+    username: sa
+    password:
+    driverName: mysql
+    maxOpenConns: 50
+    maxIdleConns: 4
+
+
+

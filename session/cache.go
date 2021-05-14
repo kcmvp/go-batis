@@ -1,4 +1,4 @@
-package batis
+package session
 
 import (
 	"errors"

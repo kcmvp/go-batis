@@ -24,7 +24,6 @@
         <!ELEMENT select (#PCDATA | include | where | set | foreach | if)*>
         <!ATTLIST select
                 id CDATA #REQUIRED
-                cacheName CDATA #IMPLIED
                 cacheKey CDATA #IMPLIED
                 timeout CDATA #IMPLIED
                 >
@@ -39,7 +38,6 @@
         <!ELEMENT update (#PCDATA | include | where | set | foreach | if)*>
         <!ATTLIST update
                 id CDATA #REQUIRED
-                cacheName CDATA #IMPLIED
                 cacheKey CDATA #IMPLIED
                 timeout CDATA #IMPLIED
                 >
@@ -47,7 +45,6 @@
         <!ELEMENT delete (#PCDATA | include | where | set | foreach | if)*>
         <!ATTLIST delete
                 id CDATA #REQUIRED
-                cacheName CDATA #IMPLIED
                 cacheKey CDATA #IMPLIED
                 timeout CDATA #IMPLIED
                 >

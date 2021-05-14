@@ -1,4 +1,4 @@
-package batis
+package sql
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -81,7 +81,7 @@ func TestMapperBuildCharData(t *testing.T) {
 	assertion := assert.New(t)
 	for _, m := range mappers {
 		t.Run(m.mapperId, func(t *testing.T) {
-			mapper := SqlMapper(m.mapperId)
+			mapper := Mapper(m.mapperId)
 			clause, err := mapper.build(mapDir, m.arg)
 			if !m.positive {
 				assertion.NotNil(err, m.desc)
