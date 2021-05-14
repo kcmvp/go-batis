@@ -22,7 +22,7 @@
         </foreach>
     </insert>
 
-    <update id="updateDog" cacheKey="#{name}" cacheName="dogcache">
+    <update id="updateDog" cacheKey="#{name}">
         update Dog
         <set>
             <if test="len(name) > 0">
@@ -38,18 +38,18 @@
         </set>
         where id = #{id}
     </update>
-    <select id="findDogByIdNoCacheName" cacheName="" cacheKey="#{id}">
+    <select id="findDogByIdNoCacheName" cacheKey="#{id}">
         select *
         from Dog
         where id = #{id}
     </select>
-    <select id="findDogById" cacheName="dogCache" cacheKey="#{id}">
+    <select id="findDogById" cacheKey="#{id}">
         select *
         from Dog
         where id = #{id}
     </select>
 
-    <select id="findDogByIdEscape" cacheName="dogCache" cacheKey="#{id}">
+    <select id="findDogByIdEscape" cacheKey="#{id}">
         select *
         from Dog
         where id &lt;= #{id}
@@ -70,7 +70,7 @@
         </where>
     </select>
 
-    <delete id="deleteDogById" cacheName="dogCache" cacheKey="#{id}">
+    <delete id="deleteDogById" cacheKey="#{id}">
         delete from dog where levy_serial_number = #{levySerialNumber}
     </delete>
 
