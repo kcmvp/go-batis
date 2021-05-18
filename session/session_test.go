@@ -72,9 +72,7 @@ func TestSuite(t *testing.T) {
 		DriverName: "sqlite3",
 		//Name:       "./mapper",
 	}
-	if  ds,err := InitSessionDefault(&cfg); err == nil {
-		suite.Run(t, &DataSourceTestSuit{ds: ds})
-	}
+	suite.Run(t, &DataSourceTestSuit{ds: InitSessionDefault(&cfg)})
 }
 
 

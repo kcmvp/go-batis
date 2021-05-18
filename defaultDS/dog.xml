@@ -38,6 +38,7 @@
         </set>
         where id = #{id}
     </update>
+    <!-- fmt.Sprintf("%v",5) -->
     <select id="findDogByIdNoCacheName" cacheKey="#{id}">
         select *
         from Dog

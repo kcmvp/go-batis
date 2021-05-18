@@ -34,6 +34,7 @@ const cacheKeyAttr = "cacheKey"
 
 var paramPattern = regexp.MustCompile(`#{\w*\.?\w*}`)
 
+// https://www.freecodecamp.org/news/generics-in-golang/
 func (m Mapper) Name() string {
 	return string(m)
 }
