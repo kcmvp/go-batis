@@ -22,7 +22,7 @@
         </foreach>
     </insert>
 
-    <update id="updateDog" cacheKey="#{name}">
+    <update id="updateDog" cacheKey="name">
         update Dog
         <set>
             <if test="len(name) > 0">
@@ -70,7 +70,6 @@
             </if>
         </where>
     </select>
-
     <delete id="deleteDogById" cacheKey="#{id}">
         delete from dog where levy_serial_number = #{levySerialNumber}
     </delete>

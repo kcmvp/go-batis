@@ -95,7 +95,7 @@ func NewMapperTagFunc(tagName string, mapFunc, tagMapFunc func(string) string) *
 
 // NewMapperFunc returns a new dao which optionally obeys a field tag and
 // a struct field name dao func given by f.  Tags will take precedence, but
-// for any other field, the mapped name will be f(field.Name)
+// for any other field, the mapped name will be f(field.Id)
 func NewMapperFunc(tagName string, f func(string) string) *Mapper {
 	return &Mapper{
 		cache:   make(map[reflect.Type]*StructMap),

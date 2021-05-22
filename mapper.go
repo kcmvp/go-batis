@@ -9,9 +9,6 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/antonmedv/expr"
 	"github.com/kcmvp/go-batis/session"
-	"os"
-	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 )
@@ -21,11 +18,12 @@ var nodeTypes = append(session.SqlTypes, "sql")
 type Mapper string
 
 type Clause struct {
-	xmlRoot   *xmlquery.Node
-	args      interface{}
+	doc       *xmlquery.Node
+	arg       interface{}
+	argMap    map[string]string
 	id        string
 	sqlType   session.SqlType
-	statement string
+	statement bytes.Buffer
 	cacheKey  string
 	sqlParams []interface{}
 }
@@ -35,7 +33,7 @@ const cacheKeyAttr = "cacheKey"
 var paramPattern = regexp.MustCompile(`#{\w*\.?\w*}`)
 
 // https://www.freecodecamp.org/news/generics-in-golang/
-func (m Mapper) Name() string {
+func (m Mapper) Id() string {
 	return string(m)
 }
 
@@ -44,16 +42,19 @@ func (m Mapper) Query(arg interface{}) ([]interface{}, error) {
 }
 
 func (m Mapper) QueryContext(ctx context.Context, arg interface{}) ([]interface{}, error) {
-	session := session.MapperSession(m.Name())
-	if clause, err := m.build(session.Name(), arg); err != nil {
-		return nil, err
-	} else if clause.sqlType != "select" {
-		return nil, fmt.Errorf(fmt.Sprintf("%v is not a select statement", m.Name()))
-	} else {
-		session.QueryCacheable(ctx, clause.statement, clause.cacheKey, arg)
-		//1: convert to struct
+	mCtx := session.MapperContext(m.Id())
+	c := &Clause{
+		id:      m.Id(),
+		doc:     mCtx.Mapping(),
+		arg:     arg,
+		argMap:  map[string]string{},
+		sqlType: "select",
 	}
-	panic(fmt.Sprintf("session is %v", session))
+	if err := c.build(c.root()); err != nil {
+		return nil, errors.Unwrap(fmt.Errorf("failed to build the mapper: %w ", err))
+	}
+	dest := []interface{}{}
+	return dest, mCtx.Session().QueryCacheable(ctx, c.Statement(), c.cacheKey, arg, &dest)
 }
 
 func (m Mapper) Exec(arg interface{}) (sql.Result, error) {
@@ -61,45 +62,21 @@ func (m Mapper) Exec(arg interface{}) (sql.Result, error) {
 }
 
 func (m Mapper) ExecContext(ctx context.Context, arg interface{}) (sql.Result, error) {
-	session := session.MapperSession(m.Name())
-	m.build(session.Name(), arg)
-	panic(fmt.Sprintf("session is %v", session))
+	//mCtx := session.MapperContext(m.Id())
+	//m.build(mCtx.Mapping(), arg)
+	//panic(fmt.Sprintf("session is %v", mCtx))
+	panic("")
 }
 
-// mapperId file naming pattern is ${struct}Mapper.xml
-// naming standard of mapperId is ${file name}.${mapperId}
-// ex: `dog.findByName` means its definition in the `dog.xml` and the `id' attribute is `findByName`
-func (m Mapper) build(mapperDir string, args interface{}) (*Clause, error) {
-	mapperName := string(m)
-	clause := &Clause{
-		args: args,
-	}
-	var fName string
-	if entries := strings.Split(mapperName, "."); len(entries) == 2 {
-		fName = fmt.Sprintf("%v/%v.xml", mapperDir, entries[0])
-		path, err := filepath.Abs(fName)
-		if err != nil {
-			return nil, err
-		}
-		f, err := os.OpenFile(path, os.O_RDONLY, 0666)
-		if err != nil {
-			return nil, err
-		}
-		root, err := xmlquery.Parse(f)
-		if err != nil {
-			return nil, err
-		}
-		clause.xmlRoot = root
-		return clause, clause.buildMapperNode(entries[1])
-	} else {
-		return nil, errors.New(fmt.Sprintf("invalid naming standard %v", mapperName))
-	}
+func (clause *Clause) root() *xmlquery.Node {
+	return clause.findChildById(clause.id)
 }
 
 func (clause *Clause) findChildById(id string) *xmlquery.Node {
 	var node *xmlquery.Node
+	//@fixme no need nodeType
 	for _, t := range nodeTypes {
-		node = xmlquery.FindOne(clause.xmlRoot, fmt.Sprintf("//%v[@id='%v']", t, id))
+		node = xmlquery.FindOne(clause.doc, fmt.Sprintf("//%v[@id='%v']", t, id))
 		if node != nil && node.Data == string(t) {
 			break
 		}
@@ -112,43 +89,107 @@ func (clause *Clause) SqlType() session.SqlType {
 }
 
 func (clause *Clause) Statement() string {
-	return clause.statement
+	return clause.statement.String()
 }
 
-func (clause *Clause) buildMapperNode(id string) error {
-	root := clause.findChildById(id)
-	if root == nil {
-		return errors.New(fmt.Sprintf("failed to find the node %v", id))
-	}
-	clause.id = id
-	clause.sqlType = session.SqlType(root.Data)
+func (clause *Clause) build(node *xmlquery.Node) error {
+	var err error
 
-	cacheKeyExp := strings.TrimSpace(root.SelectAttr(cacheKeyAttr))
-	if len(cacheKeyExp) > 0 {
-		if v, err := clause.eval([]string{cacheKeyExp}); err != nil || len(v) == 0 {
-			return fmt.Errorf("mapper#%v: invalid cache key %v", id, cacheKeyExp)
-		} else {
-			clause.cacheKey = fmt.Sprintf("%v", v[0])
-		}
+	if node == nil {
+		return nil
 	}
-
-	var buff bytes.Buffer
-	for node := root.FirstChild; node != nil; node = node.NextSibling {
-		if err := clause.buildXmlNode(root, node, &buff); err != nil {
-			return err
+	if strings.EqualFold("mapper", node.Parent.Data) {
+		if !strings.EqualFold(string(clause.sqlType), node.Data) {
+			return fmt.Errorf("mapper#%v: expect clause type %v, but the type is %v", clause.id, clause.sqlType, node.Data)
 		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			if err := clause.buildXmlNode(node, child, &buff); err != nil {
-				return err
+		cacheKeyExp := strings.TrimSpace(node.SelectAttr(cacheKeyAttr))
+		if len(cacheKeyExp) > 0 {
+			if v, err := clause.eval([]string{cacheKeyExp}); err != nil || len(v) == 0 {
+				return errors.Unwrap(fmt.Errorf("mapper#%v: invalid cache key %v: %w", clause.id, cacheKeyExp, err))
+			} else {
+				clause.cacheKey = fmt.Sprintf("%v", v[0])
 			}
 		}
 	}
-	clause.statement = strings.TrimSpace(buff.String())
-	return nil
+
+	st := node.Data
+	fmt.Printf("mapper is %v,node data is %v\n", clause.id, st)
+	switch node.Type {
+	case xmlquery.TextNode, xmlquery.CharDataNode:
+		//if err = clause.processText(st); err != nil {
+		//	//prettySql(buff, st)
+		//}
+		//return err
+		//return clause.processText(st)
+	case xmlquery.ElementNode:
+		if strings.EqualFold("foreach", st) {
+			list := node.SelectAttr("collection")
+			item := node.SelectAttr("item")
+			fmt.Println(fmt.Sprintf("mapper#%v:foreach node : collection:%v, item:%v", clause.id, list, item))
+			clause.argMap[item] = list
+		}
+	default:
+
+	}
+	for node = node.FirstChild; node != nil; node = node.NextSibling {
+		if err = clause.build(node); err != nil {
+			return err
+		}
+	}
+	return err
 }
 
+/*
+func (clause Clause) processText(exp string) error {
+	var err error
+	exp = strings.TrimSpace(spacePattern.ReplaceAllString(exp, " "))
+	if params := paramPattern.FindAllString(exp, -1); len(params) > 0 {
+		if parent.Data == "foreach" {
+			slicedArg := clause.args
+			collection := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(parent.SelectAttr("collection"), "#{"), "}"))
+			//item := strings.TrimSpace(parent.SelectAttr("item"))
+			separator := strings.TrimSpace(parent.SelectAttr("separator"))
+			if len(separator) == 0 {
+				separator = ","
+			}
+			if len(collection) > 0 {
+				if slicedArg, err = expr.Eval(collection, clause.args); err != nil ||
+					reflect.ValueOf(slicedArg).Kind() != reflect.Slice {
+					return "", fmt.Errorf("mapper#%v: foreach statement, collection property must be a slice: `%v`, %w", clause.id, collection, err)
+				}
+			} else if reflect.ValueOf(clause.args).Kind() != reflect.Slice {
+				return "", fmt.Errorf("mapper#%v: foreach statement, parameter %+v is not a slice", clause.id, clause.args)
+			}
+			s := reflect.ValueOf(slicedArg)
+			for i := 0; i < s.Len(); i++ {
+				if values, err := clause.eval(params, s.Index(i).Interface()); err == nil && len(values) > 0 {
+					clause.sqlParams = append(clause.sqlParams, values...)
+				} else {
+					return "", fmt.Errorf("mapper#%v: %v, %w", clause.id, exp, err)
+				}
+				buff.WriteString(paramPattern.ReplaceAllString(exp, "?"))
+				if i != s.Len()-1 {
+					buff.WriteString(separator)
+				}
+			}
+		} else {
+			if values, err := clause.eval(params); err == nil && len(values) > 0 {
+				clause.sqlParams = append(clause.sqlParams, values...)
+			} else {
+				return "", fmt.Errorf("mapper#%v: %v, %w", clause.id, exp, err)
+			}
+			buff.WriteString(paramPattern.ReplaceAllString(exp, "?"))
+		}
+		return buff.String(), nil
+	} else {
+		return exp, nil
+	}
+}
+*/
+
 //@FixMe need to remove redundant \n\r
-func (clause *Clause) buildXmlNode(parent, current *xmlquery.Node, buff *bytes.Buffer) (err error) {
+/*
+func (clause *Clause) buildMapperNode(parent, current *xmlquery.Node, buff *bytes.Buffer) (err error) {
 	st := current.Data
 	switch current.Type {
 	case xmlquery.TextNode, xmlquery.CharDataNode:
@@ -166,11 +207,11 @@ func (clause *Clause) buildXmlNode(parent, current *xmlquery.Node, buff *bytes.B
 				//xml.EscapeText(buff, []byte(b.InnerText()))
 				//prettySql(buff, b.InnerText())
 				for node = node.FirstChild; node != nil; node = node.NextSibling {
-					if err = clause.buildXmlNode(clause.xmlRoot, node, buff); err != nil {
+					if err = clause.buildMapperNode(clause.doc, node, buff); err != nil {
 						return err
 					}
 					for child := node.FirstChild; child != nil; child = child.NextSibling {
-						if err = clause.buildXmlNode(node, child, buff); err != nil {
+						if err = clause.buildMapperNode(node, child, buff); err != nil {
 							return err
 						}
 					}
@@ -200,30 +241,30 @@ func (clause *Clause) buildXmlNode(parent, current *xmlquery.Node, buff *bytes.B
 		return
 	}
 }
+*/
 
 var nestParamPattern = regexp.MustCompile(`#{\s+\.\w*}`)
 
-func (clause Clause) eval(exps []string, envs ...interface{}) ([]interface{}, error) {
+func (clause Clause) eval(exps []string) ([]interface{}, error) {
 	var rt []interface{}
-	envs = append(envs, clause.args)
 	for _, exp := range exps {
 		par := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(exp, "#{"), "}"))
 		var v interface{}
 		var err error
-		for _, env := range envs {
-			if v, err = expr.Eval(par, env); err == nil && v != nil {
+		if strings.Contains(par, ".") {
+			// @todo should evaluate from map
+		} else {
+			if v, err = expr.Eval(par, clause.arg); err == nil && v != nil {
 				rt = append(rt, v)
-				break
+			} else {
+				return nil, errors.Unwrap(fmt.Errorf("can not resolve: '%v', %w", par,err))
 			}
 		}
-		if err != nil || v == nil {
-			return nil, fmt.Errorf("can not resolve: '%v'", par)
-		}
-
 	}
 	return rt, nil
 }
 
+/*
 func (clause *Clause) sqlParameter(parent *xmlquery.Node, exp string) (string, error) {
 	var buff bytes.Buffer
 	var err error
@@ -270,7 +311,9 @@ func (clause *Clause) sqlParameter(parent *xmlquery.Node, exp string) (string, e
 		return exp, nil
 	}
 }
+*/
 
+var atLeastOnCharacter = regexp.MustCompile(".*\\w.*")
 var spacePattern = regexp.MustCompile(`\s+`)
 var sqlWherePattern = regexp.MustCompile(`\s+where\s+$`)
 var sqlAnd = regexp.MustCompile(`^(?i)and\s+`)

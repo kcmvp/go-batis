@@ -19,8 +19,8 @@ import (
 )
 
 var once sync.Once
-var sessionMap map[string]*Session
-var mapperSession map[string]*Session
+var sessionMap = map[string]*Session{}
+var mapperMetaMap = map[string]*Context{}
 
 const MaxOpenConns = 100
 const MaxIdleConns = 50
@@ -49,15 +49,24 @@ type Session struct {
 	sqlHooks []StatementHookFunc
 }
 
+type Context struct {
+	session *Session
+	node    *xmlquery.Node
+}
+
+func (meta *Context) Session() *Session {
+	return meta.session
+}
+
+func (meta *Context) Mapping() *xmlquery.Node {
+	return meta.node
+}
+
 func InitSessionDefault(cfg *Configuration) *Session {
 	return InitSession(cfg, defaultCache())
 }
 
 func InitSession(cfg *Configuration, cache Cache) *Session {
-	if err := validate(cfg); err != nil {
-		log.Printf("Error: %v", err.Error())
-		panic(err)
-	}
 	session := &Session{cache: cache, name: cfg.Name}
 	if err := session.validate(); err != nil {
 		panic(err)
@@ -82,14 +91,12 @@ func InitSession(cfg *Configuration, cache Cache) *Session {
 	return session
 }
 
-func validate(cfg *Configuration) error {
-	_, err := os.Stat(cfg.Name)
-	return err
-}
-
 func (session *Session) validate() error {
 	var err error
 	var mapperPath string
+	if _, err = os.Stat(session.name); err != nil {
+		return errors.Unwrap(fmt.Errorf("validate session %w ", err))
+	}
 	if mapperPath, err = filepath.Abs(session.name); err != nil {
 		return errors.Unwrap(fmt.Errorf("load mapper %w ", err))
 	} else {
@@ -108,11 +115,14 @@ func (session *Session) validate() error {
 						for _, node := range xmlquery.Find(root, "//*/@id") {
 							for _, sqlType := range SqlTypes {
 								if node.Data == string(sqlType) {
-									m := strings.TrimSpace(node.SelectAttr("id"))
-									if _, ok := mapperSession[m]; !ok {
-										mapperSession[m] = session
+									id := strings.TrimSpace(node.SelectAttr("id"))
+									if _, ok := mapperMetaMap[id]; !ok {
+										mapperMetaMap[id] = &Context{
+											session: session,
+											node:    root,
+										}
 									} else {
-										panic(fmt.Errorf("duplicated sql statement : %v", m))
+										panic(fmt.Errorf("duplicated sql statement : %v", id))
 									}
 								}
 							}
@@ -135,9 +145,9 @@ func GetSession(name string) *Session {
 	}
 }
 
-func MapperSession(mapperName string) *Session {
-	if v, o := mapperSession[mapperName]; !o {
-		panic(fmt.Errorf("can not find the session for the mapper %v", mapperName))
+func MapperContext(id string) *Context {
+	if v, o := mapperMetaMap[id]; !o {
+		panic(fmt.Errorf("can not find the session for the mapper %v", id))
 	} else {
 		return v
 	}
@@ -219,8 +229,8 @@ func Init(v *viper.Viper) {
 	log.Printf("datasource %s initialized successfully", reflect.ValueOf(cfgMap).MapKeys())
 }
 
-func (s Session) statementHook(ctx context.Context, statement *string) error {
-	for _, hook := range s.sqlHooks {
+func (session Session) statementHook(ctx context.Context, statement *string) error {
+	for _, hook := range session.sqlHooks {
 		if err := hook(ctx, statement); err != nil {
 			log.Printf("error statement: %v; %w", statement, err)
 			return err
@@ -229,33 +239,35 @@ func (s Session) statementHook(ctx context.Context, statement *string) error {
 	return nil
 }
 
-func (s Session) QueryCacheable(ctx context.Context, statement, key string, arg interface{}) (interface{}, error) {
+func (session Session) QueryCacheable(ctx context.Context, statement, key string, arg interface{}, dest interface{}) error {
 	if len(key) > 0 {
-		if v, err := s.Get(key); err != nil {
+		if v, err := session.Get(key); err != nil {
 			goto withCache
 		} else {
-			return v, nil
+			//@todo with v
+			panic(fmt.Sprintf("to do %v", v))
+			return err
 		}
 	} else {
 		goto withCache
 	}
 
 withCache:
-	s.statementHook(ctx, &statement)
-	if v, err := s.Query(statement, arg); err == nil {
+	session.statementHook(ctx, &statement)
+	if v, err := session.Query(statement, arg); err == nil {
 		defer func() {
-			s.Set(key, v)
+			session.Set(key, v)
 		}()
-		return v, nil
+		return nil
 	} else {
-		return nil, err
+		return err
 	}
 }
 
-func (s Session) ExecCacheable(ctx context.Context, statement, key string, arg interface{}) (sql.Result, error) {
+func (session Session) ExecCacheable(ctx context.Context, statement, key string, arg interface{}) (sql.Result, error) {
 	if len(key) > 0 {
-		s.Del(key)
+		session.Del(key)
 	}
-	s.statementHook(ctx, &statement)
-	return s.Exec(statement, arg)
+	session.statementHook(ctx, &statement)
+	return session.Exec(statement, arg)
 }

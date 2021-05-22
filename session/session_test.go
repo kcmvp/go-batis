@@ -55,7 +55,7 @@ func (s DataSourceTestSuit) SetupSuite() {
 		for _, entry := range entries {
 			if !entry.IsDir() {
 				/*
-				ba, _ := os.ReadFile(filepath.Join("./ddl", entry.Name()))
+				ba, _ := os.ReadFile(filepath.Join("./ddl", entry.Id()))
 				if _, err = s.ds.ExecSql(string(ba)); err != nil {
 					a := 1 + 1
 					fmt.Sprintf("failed to init schema %+v, %v", err, a)
@@ -70,7 +70,7 @@ func TestSuite(t *testing.T) {
 	cfg := Configuration{
 		Url:        "file::memory:?cache=shared",
 		DriverName: "sqlite3",
-		//Name:       "./mapper",
+		//Id:       "./mapper",
 	}
 	suite.Run(t, &DataSourceTestSuit{ds: InitSessionDefault(&cfg)})
 }
