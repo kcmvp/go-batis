@@ -17,8 +17,8 @@
     <!--passing parameter is a struct or a map,  which contains the slice that wants to iterate -->
     <insert id="forEachCase2">
         insert into Dog(name,age,price) values
-        <foreach collection="#{DogList}" separator=";">
-            (#{Name},#{Age},#{Price})
+        <foreach collection="#{DogList}" item="dog" separator=";">
+            (#{dog.Name},#{dog.Age},#{dog.Price})
         </foreach>
     </insert>
 

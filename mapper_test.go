@@ -58,12 +58,12 @@ var mappers = []struct {
 	desc     string
 	mapperId string
 	sqlType string
-	arg      interface{}
+	arg     interface{}
 	positive bool
 	msg      string
 }{
-	{"case1: miss parameters", "createDog", "insert",nil, false, "mapper#createDog: insert into Dog(name,age,price) values (#{name},#{age},#{price}), can not resolve: 'name'"},
-	{"case2: simple create", "createDog", "insert",dogMapF, true, "insert into Dog(name,age,price) values (?,?,?)"},
+	//{"case1: miss parameters", "createDog", "insert",nil, false, "mapper#createDog: insert into Dog(name,age,price) values (#{name},#{age},#{price}), can not resolve: 'name'"},
+	//{"case2: simple create", "createDog", "insert",dogMapF, true, "insert into Dog(name,age,price) values (?,?,?)"},
 	{"case3: with partial parameters", "updateDog", "update",dogMapP, true, "update Dog set name = ?, age = ?, updated_at = CURRENT_TIMESTAMP() where id = ?"},
 	{"case4: with all parameters", "updateDog", "update",dogMapF, true, "update Dog set name = ?, age = ?, price = ?, updated_at = CURRENT_TIMESTAMP() where id = ?"},
 	//{"case5: miss cache name", "findDogByIdNoCacheName", dogMapF, false, "mapper#findDogByIdNoCacheName: empty cache name or key"},
@@ -75,7 +75,9 @@ var mappers = []struct {
 	{"case10: nest sql ref", "selectByRefNest","select", dogMapF, true, "SELECT f.ID , f.PROCESS_KEY , f.PROCESS_NAME , f.MODULE_CODE , m.MODULE_NAME , f.NOTE , f.STATUS FROM UBPC_PROCESS_FILE f LEFT JOIN UBPC_MODULE m ON m.MODULE_CODE = f.MODULE_CODE where f.MODULE_CODE = ? AND (f.PROCESS_NAME LIKE CONCAT('%',?,'%') OR f.PROCESS_KEY LIKE CONCAT('%',?,'%')) AND f.age = ?"},
 	{"case11: sql with escape", "findDogByIdEscape","select", dogMapF, true, "select * from Dog where id <= ? and price >= 100"},
 	{"case12: invalid parameter", "forEachCase1","insert", dogMapF, false, "is not a slice"},
-	{"case13: happy flow", "forEachCase1","insert", dogList, true, "insert into Dog(name,age,price) values (?,?,?),(?,?,?)"},
+	{"case13: happy flow", "forEachCase1","insert", map[string]interface{}{
+		"dogList":dogList,
+	}, true, "insert into Dog(name,age,price) values (?,?,?),(?,?,?)"},
 	{"case14: ", "forEachCase2","insert", redDog, true, "insert into Dog(name,age,price) values (?,?,?);(?,?,?)"},
 }
 
@@ -96,7 +98,7 @@ func TestMapperBuildCharData(t *testing.T) {
 			clause := &Clause{
 				id: m.mapperId,
 				doc: node,
-				args: m.arg,
+				arg: m.arg,
 				sqlType: session.SqlType(m.sqlType),
 			}
 			err = clause.build()
